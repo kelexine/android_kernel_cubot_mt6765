@@ -103,6 +103,20 @@ DEFINE_EVENT(cgroup, cgroup_rename,
 	TP_ARGS(cgrp, path)
 );
 
+DEFINE_EVENT(cgroup, cgroup_freeze,
+
+	TP_PROTO(struct cgroup *cgrp, const char *path),
+
+	TP_ARGS(cgrp, path)
+);
+
+DEFINE_EVENT(cgroup, cgroup_unfreeze,
+
+	TP_PROTO(struct cgroup *cgrp, const char *path),
+
+	TP_ARGS(cgrp, path)
+);
+
 DECLARE_EVENT_CLASS(cgroup_migrate,
 
 	TP_PROTO(struct cgroup *dst_cgrp, const char *path,
