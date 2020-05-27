@@ -4936,7 +4936,6 @@ static struct cftype cgroup_base_files[] = {
 	},
 	{
 		.name = "cpu.stat",
-		.flags = CFTYPE_NOT_ON_ROOT,
 		.seq_show = cpu_stat_show,
 	},
 #ifdef CONFIG_PSI
