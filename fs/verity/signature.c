@@ -29,8 +29,8 @@ static struct key *fsverity_keyring;
 /**
  * fsverity_verify_signature() - check a verity file's signature
  *
- * If the file's fs-verity descriptor includes a signature of the file
- * measurement, verify it against the certificates in the fs-verity keyring.
+ * If the file's fs-verity descriptor includes a signature of the file digest,
+ * verify it against the certificates in the fs-verity keyring.
  *
  * Return: 0 on success (signature valid or not required); -errno on failure
  */
@@ -64,7 +64,7 @@ int fsverity_verify_signature(const struct fsverity_info *vi,
 	memcpy(d->magic, "FSVerity", 8);
 	d->digest_algorithm = cpu_to_le16(hash_alg - fsverity_hash_algs);
 	d->digest_size = cpu_to_le16(hash_alg->digest_size);
-	memcpy(d->digest, vi->measurement, hash_alg->digest_size);
+	memcpy(d->digest, vi->file_digest, hash_alg->digest_size);
 
 	err = verify_pkcs7_signature(d, sizeof(*d) + hash_alg->digest_size,
 				     desc->signature, sig_size,
@@ -87,8 +87,8 @@ int fsverity_verify_signature(const struct fsverity_info *vi,
 		return err;
 	}
 
-	pr_debug("Valid signature for file measurement %s:%*phN\n",
-		 hash_alg->name, hash_alg->digest_size, vi->measurement);
+	pr_debug("Valid signature for file digest %s:%*phN\n",
+		 hash_alg->name, hash_alg->digest_size, vi->file_digest);
 	return 0;
 }
 
