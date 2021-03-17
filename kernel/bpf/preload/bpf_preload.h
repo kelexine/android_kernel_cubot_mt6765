@@ -12,6 +12,14 @@ struct umd_info {
 	struct pid *tgid;
 };
 
+static inline void umd_cleanup_helper(struct umd_info *info)
+{
+	if (info->tgid) {
+		put_pid(info->tgid);
+		info->tgid = NULL;
+	}
+}
+
 struct bpf_preload_ops {
         struct umd_info info;
 	int (*preload)(struct bpf_preload_info *);
