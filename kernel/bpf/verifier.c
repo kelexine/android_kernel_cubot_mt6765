@@ -5661,6 +5661,12 @@ static int sanitize_ptr_alu(struct bpf_verifier_env *env,
 		alu_state |= off_is_imm ? BPF_ALU_IMMEDIATE : 0;
 		alu_state |= ptr_is_dst_reg ?
 			     BPF_ALU_SANITIZE_SRC : BPF_ALU_SANITIZE_DST;
+
+		/* Limit pruning on unknown scalars to enable deep search for
+		 * potential masking differences from other program paths.
+		 */
+		if (!off_is_imm)
+			env->explore_alu_limits = true;
 	}
 
 	err = update_alu_sanitation_state(aux, alu_state, alu_limit);
@@ -8960,8 +8966,8 @@ next:
 }
 
 /* Returns true if (rold safe implies rcur safe) */
-static bool regsafe(struct bpf_reg_state *rold, struct bpf_reg_state *rcur,
-		    struct idpair *idmap)
+static bool regsafe(struct bpf_verifier_env *env, struct bpf_reg_state *rold,
+		    struct bpf_reg_state *rcur, struct idpair *idmap)
 {
 	bool equal;
 
@@ -8987,6 +8993,8 @@ static bool regsafe(struct bpf_reg_state *rold, struct bpf_reg_state *rcur,
 		return false;
 	switch (rold->type) {
 	case SCALAR_VALUE:
+		if (env->explore_alu_limits)
+			return false;
 		if (rcur->type == SCALAR_VALUE) {
 			if (!rold->precise && !rcur->precise)
 				return true;
@@ -9081,7 +9089,7 @@ static bool regsafe(struct bpf_reg_state *rold, struct bpf_reg_state *rcur,
 	return false;
 }
 
-static bool stacksafe(struct bpf_func_state *old,
+static bool stacksafe(struct bpf_verifier_env *env, struct bpf_func_state *old,
 		      struct bpf_func_state *cur,
 		      struct idpair *idmap)
 {
@@ -9128,7 +9136,7 @@ static bool stacksafe(struct bpf_func_state *old,
 			continue;
 		if (old->stack[spi].slot_type[0] != STACK_SPILL)
 			continue;
-		if (!regsafe(&old->stack[spi].spilled_ptr,
+		if (!regsafe(env, &old->stack[spi].spilled_ptr,
 			     &cur->stack[spi].spilled_ptr,
 			     idmap))
 			/* when explored and current stack slot are both storing
@@ -9180,7 +9188,8 @@ static bool refsafe(struct bpf_func_state *old, struct bpf_func_state *cur)
  * whereas register type in current state is meaningful, it means that
  * the current state will reach 'bpf_exit' instruction safely
  */
-static bool func_states_equal(struct bpf_func_state *old,
+static bool func_states_equal(struct bpf_verifier_env *env,
+			      struct bpf_func_state *old,
 			      struct bpf_func_state *cur)
 {
 	struct idpair *idmap;
@@ -9193,11 +9202,11 @@ static bool func_states_equal(struct bpf_func_state *old,
 		return false;
 
 	for (i = 0; i < MAX_BPF_REG; i++) {
-		if (!regsafe(&old->regs[i], &cur->regs[i], idmap))
+		if (!regsafe(env, &old->regs[i], &cur->regs[i], idmap))
 			goto out_free;
 	}
 
-	if (!stacksafe(old, cur, idmap))
+	if (!stacksafe(env, old, cur, idmap))
 		goto out_free;
 
 	if (!refsafe(old, cur))
@@ -9233,7 +9242,7 @@ static bool states_equal(struct bpf_verifier_env *env,
 	for (i = 0; i <= old->curframe; i++) {
 		if (old->frame[i]->callsite != cur->frame[i]->callsite)
 			return false;
-		if (!func_states_equal(old->frame[i], cur->frame[i]))
+		if (!func_states_equal(env, old->frame[i], cur->frame[i]))
 			return false;
 	}
 	return true;
