@@ -183,6 +183,33 @@ static inline const char *kernel_load_data_id_str(enum kernel_load_data_id id)
 	return kernel_load_data_str[id];
 }
 
+enum lockdown_reason {
+	LOCKDOWN_NONE,
+	LOCKDOWN_MODULE_SIGNATURE,
+	LOCKDOWN_DEV_MEM,
+	LOCKDOWN_EFI_TEST,
+	LOCKDOWN_KEXEC,
+	LOCKDOWN_HIBERNATION,
+	LOCKDOWN_PCI_ACCESS,
+	LOCKDOWN_IOPORT,
+	LOCKDOWN_MSR,
+	LOCKDOWN_ACPI_TABLES,
+	LOCKDOWN_DEVICE_TREE,
+	LOCKDOWN_PCMCIA_CIS,
+	LOCKDOWN_TIOCSSERIAL,
+	LOCKDOWN_MODULE_UNLOAD,
+	LOCKDOWN_INTEGRITY_MAX,
+	LOCKDOWN_KCORE,
+	LOCKDOWN_KPROBES,
+	LOCKDOWN_BPF_WRITE_USER,
+	LOCKDOWN_CONFIDENTIALITY_MAX,
+};
+
+static inline int security_locked_down(enum lockdown_reason what)
+{
+	return 0;
+}
+
 #ifdef CONFIG_SECURITY
 
 struct security_mnt_opts {
