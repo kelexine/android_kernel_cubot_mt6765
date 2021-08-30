@@ -257,4 +257,3 @@ TRACE_EVENT(erofs_destroy_inode,
 
  /* This part must be outside protection */
 #include <trace/define_trace.h>
-
