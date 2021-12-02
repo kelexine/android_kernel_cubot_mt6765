@@ -348,6 +348,11 @@ void fuse_queue_forget(struct fuse_conn *fc, struct fuse_forget_link *forget,
 {
 	struct fuse_iqueue *fiq = &fc->iq;
 
+	if (nodeid == 0) {
+		kfree(forget);
+		return;
+	}
+
 	forget->forget_one.nodeid = nodeid;
 	forget->forget_one.nlookup = nlookup;
 
@@ -1976,6 +1981,22 @@ static ssize_t fuse_dev_do_write(struct fuse_dev *fud,
                 path[req->out.args[0].size - 1] = 0;
                 req->out.h.error = kern_path(path, 0, req->out.canonical_path);
         }
+
+#ifdef CONFIG_FUSE_BPF
+	if (!err && (req->in.h.opcode == FUSE_LOOKUP ||
+		     req->in.h.opcode == (FUSE_LOOKUP | FUSE_POSTFILTER)) &&
+		req->out.numargs > 1 &&
+		req->out.args[1].size == sizeof(struct fuse_entry_bpf_out)) {
+		struct fuse_entry_bpf_out *febo = (struct fuse_entry_bpf_out *)
+				req->out.args[1].value;
+		struct fuse_entry_bpf *feb = container_of(febo, struct fuse_entry_bpf, out);
+
+		if (febo->backing_action == FUSE_ACTION_REPLACE)
+			feb->backing_file = fget(febo->backing_fd);
+		if (febo->bpf_action == FUSE_ACTION_REPLACE)
+			feb->bpf_file = fget(febo->bpf_fd);
+	}
+#endif
 	spin_lock(&fpq->lock);
 	clear_bit(FR_LOCKED, &req->flags);
 	if (!fpq->connected) {

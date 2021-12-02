@@ -7,6 +7,7 @@
 */
 
 #include "fuse_i.h"
+#include <linux/filter.h>
 
 #include <linux/pagemap.h>
 #include <linux/slab.h>
@@ -219,6 +220,20 @@ int fuse_open_common(struct inode *inode, struct file *file, bool isdir)
 	if (err)
 		return err;
 
+#ifdef CONFIG_FUSE_BPF
+	{
+		struct fuse_err_ret fer;
+
+		fer = fuse_bpf_backing(inode, struct fuse_open_io,
+				       fuse_open_initialize,
+				       fuse_open_backing,
+				       fuse_open_finalize,
+				       inode, file, isdir);
+		if (fer.ret)
+			return PTR_ERR(fer.result);
+	}
+#endif
+
 	if (is_wb_truncate) {
 		inode_lock(inode);
 		fuse_set_nowrite(inode);
@@ -298,6 +313,17 @@ static int fuse_open(struct inode *inode, struct file *file)
 static int fuse_release(struct inode *inode, struct file *file)
 {
 	struct fuse_conn *fc = get_fuse_conn(inode);
+
+#ifdef CONFIG_FUSE_BPF
+	struct fuse_err_ret fer;
+
+	fer = fuse_bpf_backing(inode, struct fuse_release_in,
+		       fuse_release_initialize, fuse_release_backing,
+		       fuse_release_finalize,
+		       inode, file);
+	if (fer.ret)
+		return PTR_ERR(fer.result);
+#endif
 
 	/* see fuse_vma_close() for !writeback_cache case */
 	if (fc->writeback_cache)
@@ -417,6 +443,17 @@ static int fuse_flush(struct file *file, fl_owner_t id)
 	struct fuse_flush_in inarg;
 	int err;
 
+#ifdef CONFIG_FUSE_BPF
+	struct fuse_err_ret fer;
+
+	fer = fuse_bpf_backing(file->f_inode, struct fuse_flush_in,
+			       fuse_flush_initialize, fuse_flush_backing,
+			       fuse_flush_finalize,
+			       file, id);
+	if (fer.ret)
+		return PTR_ERR(fer.result);
+#endif
+
 	if (fuse_is_bad(inode))
 		return -EIO;
 
@@ -464,6 +501,17 @@ int fuse_fsync_common(struct file *file, loff_t start, loff_t end,
 	FUSE_ARGS(args);
 	struct fuse_fsync_in inarg;
 	int err;
+
+#ifdef CONFIG_FUSE_BPF
+	struct fuse_err_ret fer;
+
+	fer = fuse_bpf_backing(inode, struct fuse_fsync_in,
+			       fuse_fsync_initialize, fuse_fsync_backing,
+			       fuse_fsync_finalize,
+			       file, start, end, datasync);
+	if (fer.ret)
+		return PTR_ERR(fer.result);
+#endif
 
 	if (fuse_is_bad(inode))
 		return -EIO;
@@ -906,6 +954,16 @@ static int fuse_readpages(struct file *file, struct address_space *mapping,
 	int err;
 	int nr_alloc = min_t(unsigned, nr_pages, FUSE_MAX_PAGES_PER_REQ);
 
+#ifdef CONFIG_FUSE_BPF
+	/*
+	 * Currently no meaningful readahead is possible with fuse-bpf within
+	 * the kernel, so unless the daemon is aware of this file, ignore this
+	 * call.
+	 */
+	if (!get_fuse_inode(inode)->nodeid)
+		return 0;
+#endif
+
 	err = -EIO;
 	if (fuse_is_bad(inode))
 		goto out;
@@ -937,6 +995,20 @@ static ssize_t fuse_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 	struct inode *inode = iocb->ki_filp->f_mapping->host;
 	struct fuse_conn *fc = get_fuse_conn(inode);
 	struct fuse_file *ff = iocb->ki_filp->private_data;
+
+#ifdef CONFIG_FUSE_BPF
+	{
+		struct fuse_err_ret fer;
+
+		fer = fuse_bpf_backing(inode, struct fuse_file_read_iter_io,
+				       fuse_file_read_iter_initialize,
+				       fuse_file_read_iter_backing,
+				       fuse_file_read_iter_finalize,
+				       iocb, to);
+		if (fer.ret)
+			return PTR_ERR(fer.result);
+	}
+#endif
 
 	if (fuse_is_bad(inode))
 		return -EIO;
@@ -1200,6 +1272,20 @@ static ssize_t fuse_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	struct inode *inode = mapping->host;
 	ssize_t err;
 	loff_t endbyte = 0;
+
+#ifdef CONFIG_FUSE_BPF
+	{
+		struct fuse_err_ret fer;
+
+		fer = fuse_bpf_backing(inode, struct fuse_file_write_iter_io,
+				       fuse_file_write_iter_initialize,
+				       fuse_file_write_iter_backing,
+				       fuse_file_write_iter_finalize,
+				       iocb, from);
+		if (fer.ret)
+			return PTR_ERR(fer.result);
+	}
+#endif
 
 	if (fuse_is_bad(inode))
 		return -EIO;
@@ -1642,6 +1728,9 @@ int fuse_write_inode(struct inode *inode, struct writeback_control *wbc)
 	struct fuse_inode *fi = get_fuse_inode(inode);
 	struct fuse_file *ff;
 	int err;
+
+	if (!S_ISREG(inode->i_mode))
+		return 0;
 
 	ff = __fuse_write_file_get(fc, fi);
 	err = fuse_flush_times(inode, ff);
@@ -2108,6 +2197,11 @@ static int fuse_file_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	struct fuse_file *ff = file->private_data;
 
+#ifdef CONFIG_FUSE_BPF
+	if (ff && ff->backing_file)
+		return fuse_backing_mmap(file, vma);
+#endif
+
 	if (ff && ff->passthrough.filp)
 		return fuse_passthrough_mmap(file, vma);
 
@@ -2357,6 +2451,18 @@ static loff_t fuse_file_llseek(struct file *file, loff_t offset, int whence)
 {
 	loff_t retval;
 	struct inode *inode = file_inode(file);
+
+#ifdef CONFIG_FUSE_BPF
+	struct fuse_err_ret fer;
+
+	fer = fuse_bpf_backing(inode, struct fuse_lseek_io,
+			       fuse_lseek_initialize,
+			       fuse_lseek_backing,
+			       fuse_lseek_finalize,
+			       file, offset, whence);
+	if (fer.ret)
+		return PTR_ERR(fer.result);
+#endif
 
 	switch (whence) {
 	case SEEK_SET:
@@ -2990,6 +3096,18 @@ static long fuse_file_fallocate(struct file *file, int mode, loff_t offset,
 	int err;
 	bool lock_inode = !(mode & FALLOC_FL_KEEP_SIZE) ||
 			   (mode & FALLOC_FL_PUNCH_HOLE);
+
+#ifdef CONFIG_FUSE_BPF
+	struct fuse_err_ret fer;
+
+	fer = fuse_bpf_backing(inode, struct fuse_fallocate_in,
+			       fuse_file_fallocate_initialize,
+			       fuse_file_fallocate_backing,
+			       fuse_file_fallocate_finalize,
+			       file, mode, offset, length);
+	if (fer.ret)
+		return PTR_ERR(fer.result);
+#endif
 
 	if (mode & ~(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE))
 		return -EOPNOTSUPP;

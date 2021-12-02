@@ -396,6 +396,7 @@ enum fuse_opcode {
 	FUSE_READDIRPLUS   = 44,
 	FUSE_RENAME2       = 45,
 	FUSE_LSEEK         = 46,
+	FUSE_COPY_FILE_RANGE = 47,
 	FUSE_CANONICAL_PATH= 2016,
 
 	/* CUSE specific operations */
@@ -569,10 +570,22 @@ struct fuse_statfs_out {
 	struct fuse_kstatfs st;
 };
 
+#define FUSE_FSYNC_FDATASYNC (1 << 0)
+
 struct fuse_fsync_in {
 	uint64_t	fh;
 	uint32_t	fsync_flags;
 	uint32_t	padding;
+};
+
+struct fuse_copy_file_range_in {
+	uint64_t	fh_in;
+	uint64_t	off_in;
+	uint64_t	nodeid_out;
+	uint64_t	fh_out;
+	uint64_t	off_out;
+	uint64_t	len;
+	uint64_t	flags;
 };
 
 struct fuse_setxattr_in {
