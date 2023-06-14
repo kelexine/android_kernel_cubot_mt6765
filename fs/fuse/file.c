@@ -91,32 +91,53 @@ static void fuse_release_end(struct fuse_conn *fc, struct fuse_req *req)
 	iput(req->misc.release.inode);
 }
 
-static void fuse_file_put(struct fuse_file *ff, bool sync, bool isdir)
+static void fuse_file_put(struct inode *inode, struct fuse_file *ff,
+			  bool sync, bool isdir)
 {
-	if (refcount_dec_and_test(&ff->count)) {
-		struct fuse_req *req = ff->reserved_req;
+	struct fuse_req *req;
+#ifdef CONFIG_FUSE_BPF
+	struct fuse_err_ret fer;
+#endif
 
-		if (ff->fc->no_open && !isdir) {
-			/*
-			 * Drop the release request when client does not
-			 * implement 'open'
-			 */
-			__clear_bit(FR_BACKGROUND, &req->flags);
-			iput(req->misc.release.inode);
-			fuse_put_request(ff->fc, req);
-		} else if (sync) {
-			__set_bit(FR_FORCE, &req->flags);
-			__clear_bit(FR_BACKGROUND, &req->flags);
-			fuse_request_send(ff->fc, req);
-			iput(req->misc.release.inode);
-			fuse_put_request(ff->fc, req);
-		} else {
-			req->end = fuse_release_end;
-			__set_bit(FR_BACKGROUND, &req->flags);
-			fuse_request_send_background(ff->fc, req);
-		}
+	if (!refcount_dec_and_test(&ff->count))
+		return;
+
+	req = ff->reserved_req;
+
+#ifdef CONFIG_FUSE_BPF
+	fer = fuse_bpf_backing(inode, struct fuse_release_in,
+			       fuse_release_initialize, fuse_release_backing,
+			       fuse_release_finalize,
+			       inode, ff);
+	if (fer.ret) {
+		__clear_bit(FR_BACKGROUND, &req->flags);
+		iput(req->misc.release.inode);
+		fuse_put_request(ff->fc, req);
 		kfree(ff);
+		return;
 	}
+#endif
+
+	if (ff->fc->no_open && !isdir) {
+		/*
+		 * Drop the release request when client does not
+		 * implement 'open'
+		 */
+		__clear_bit(FR_BACKGROUND, &req->flags);
+		iput(req->misc.release.inode);
+		fuse_put_request(ff->fc, req);
+	} else if (sync) {
+		__set_bit(FR_FORCE, &req->flags);
+		__clear_bit(FR_BACKGROUND, &req->flags);
+		fuse_request_send(ff->fc, req);
+		iput(req->misc.release.inode);
+		fuse_put_request(ff->fc, req);
+	} else {
+		req->end = fuse_release_end;
+		__set_bit(FR_BACKGROUND, &req->flags);
+		fuse_request_send_background(ff->fc, req);
+	}
+	kfree(ff);
 }
 
 int fuse_do_open(struct fuse_conn *fc, u64 nodeid, struct file *file,
@@ -302,7 +323,7 @@ void fuse_release_common(struct file *file, bool isdir)
 	 * synchronous RELEASE is allowed (and desirable) in this case
 	 * because the server can be trusted not to screw up.
 	 */
-	fuse_file_put(ff, ff->fc->destroy_req != NULL, isdir);
+	fuse_file_put(req->misc.release.inode, ff, ff->fc->destroy_req != NULL, isdir);
 }
 
 static int fuse_open(struct inode *inode, struct file *file)
@@ -313,17 +334,6 @@ static int fuse_open(struct inode *inode, struct file *file)
 static int fuse_release(struct inode *inode, struct file *file)
 {
 	struct fuse_conn *fc = get_fuse_conn(inode);
-
-#ifdef CONFIG_FUSE_BPF
-	struct fuse_err_ret fer;
-
-	fer = fuse_bpf_backing(inode, struct fuse_release_in,
-		       fuse_release_initialize, fuse_release_backing,
-		       fuse_release_finalize,
-		       inode, file);
-	if (fer.ret)
-		return PTR_ERR(fer.result);
-#endif
 
 	/* see fuse_vma_close() for !writeback_cache case */
 	if (fc->writeback_cache)
@@ -343,7 +353,7 @@ void fuse_sync_release(struct fuse_file *ff, int flags)
 	 * iput(NULL) is a no-op and since the refcount is 1 and everything's
 	 * synchronous, we are fine with not doing igrab() here"
 	 */
-	fuse_file_put(ff, true, false);
+	fuse_file_put(NULL, ff, true, false);
 }
 EXPORT_SYMBOL_GPL(fuse_sync_release);
 
@@ -870,7 +880,7 @@ static void fuse_readpages_end(struct fuse_conn *fc, struct fuse_req *req)
 		put_page(page);
 	}
 	if (req->ff)
-		fuse_file_put(req->ff, false, false);
+		fuse_file_put(mapping ? mapping->host : NULL, req->ff, false, false);
 }
 
 static void fuse_send_readpages(struct fuse_req *req, struct file *file)
@@ -1575,7 +1585,7 @@ static void fuse_writepage_free(struct fuse_conn *fc, struct fuse_req *req)
 		__free_page(req->pages[i]);
 
 	if (req->ff)
-		fuse_file_put(req->ff, false, false);
+		fuse_file_put(req->inode, req->ff, false, false);
 }
 
 static void fuse_writepage_finish(struct fuse_conn *fc, struct fuse_req *req)
@@ -1735,7 +1745,7 @@ int fuse_write_inode(struct inode *inode, struct writeback_control *wbc)
 	ff = __fuse_write_file_get(fc, fi);
 	err = fuse_flush_times(inode, ff);
 	if (ff)
-		fuse_file_put(ff, false, false);
+		fuse_file_put(inode, ff, false, false);
 
 	return err;
 }
@@ -2050,7 +2060,7 @@ static int fuse_writepages(struct address_space *mapping,
 		err = 0;
 	}
 	if (data.ff)
-		fuse_file_put(data.ff, false, false);
+		fuse_file_put(inode, data.ff, false, false);
 
 	kfree(data.orig_pages);
 out:
