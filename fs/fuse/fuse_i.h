@@ -73,6 +73,9 @@ struct fuse_dentry {
 		struct rcu_head rcu;
 	};
 	struct path backing_path;
+
+	/* bpf program *only* set for negative dentries */
+	struct bpf_prog *bpf;
 };
 
 static inline struct fuse_dentry *get_fuse_dentry(const struct dentry *entry)

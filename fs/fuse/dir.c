@@ -346,6 +346,9 @@ static void fuse_dentry_release(struct dentry *dentry)
 	if (fd && fd->backing_path.dentry)
 		path_put(&fd->backing_path);
 
+	if (fd && fd->bpf)
+		bpf_prog_put(fd->bpf);
+
 	kfree_rcu(fd, rcu);
 }
 
