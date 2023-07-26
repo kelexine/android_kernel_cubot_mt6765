@@ -272,6 +272,7 @@ int fuse_create_open_backing(
 	err = finish_open(file, entry, fuse_open_file_backing);
 
 out:
+	iput(inode);
 	dput(backing_dentry);
 	return err;
 }
@@ -1236,7 +1237,7 @@ struct dentry *fuse_lookup_finalize(struct fuse_bpf_args *fa, struct inode *dir,
 {
 	struct fuse_dentry *fd;
 	struct dentry *bd;
-	struct inode *inode, *backing_inode;
+	struct inode *inode = NULL, *backing_inode;
 	struct inode *d_inode = entry->d_inode;
 	struct fuse_entry_out *feo = fa->out_args[0].value;
 	struct fuse_entry_bpf_out *febo = fa->out_args[1].value;
@@ -1265,9 +1266,8 @@ struct dentry *fuse_lookup_finalize(struct fuse_bpf_args *fa, struct inode *dir,
 		target_nodeid = get_fuse_inode(d_inode)->nodeid;
 
 	inode = fuse_iget_backing(dir->i_sb, target_nodeid, backing_inode);
-
-	if (IS_ERR(inode)) {
-		ret = ERR_PTR(PTR_ERR(inode));
+	if (!inode) {
+		ret = ERR_PTR(-EIO);
 		goto out;
 	}
 
@@ -1286,7 +1286,10 @@ struct dentry *fuse_lookup_finalize(struct fuse_bpf_args *fa, struct inode *dir,
 	get_fuse_inode(inode)->nodeid = feo->nodeid;
 
 	ret = d_splice_alias(inode, entry);
+	if (!IS_ERR(ret))
+		inode = NULL;
 out:
+	iput(inode);
 	if (feb->backing_file)
 		fput(feb->backing_file);
 	return ret;
