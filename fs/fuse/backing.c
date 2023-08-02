@@ -1129,16 +1129,22 @@ int fuse_lookup_backing(struct fuse_bpf_args *fa, struct inode *dir,
 		return 0;
 	}
 
+	err = follow_down(&fuse_entry->backing_path);
+	if (err)
+		goto err_out;
+
 	err = vfs_getattr(&fuse_entry->backing_path, &stat,
 				  STATX_BASIC_STATS, 0);
-	if (err) {
-		path_put_init(&fuse_entry->backing_path);
-		return err;
-	}
+	if (err)
+		goto err_out;
 
 	fuse_stat_to_attr(get_fuse_conn(dir),
 			  backing_entry->d_inode, &stat, &feo->attr);
 	return 0;
+
+err_out:
+	path_put_init(&fuse_entry->backing_path);
+	return err;
 }
 
 int fuse_handle_backing(struct fuse_entry_bpf *feb, struct inode **backing_inode,
