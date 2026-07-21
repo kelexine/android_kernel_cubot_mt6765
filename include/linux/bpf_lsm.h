@@ -13,6 +13,8 @@
 
 #ifdef CONFIG_BPF_LSM
 
+extern bool bpf_lsm_initialized __ro_after_init;
+
 #define LSM_HOOK(RET, DEFAULT, NAME, ...) \
 	RET bpf_lsm_##NAME(__VA_ARGS__);
 #include <linux/lsm_hook_defs.h>
@@ -55,6 +57,8 @@ void bpf_inode_storage_free(struct inode *inode);
 void bpf_task_storage_free(struct task_struct *task);
 
 #else /* !CONFIG_BPF_LSM */
+
+#define bpf_lsm_initialized false
 
 static inline bool bpf_lsm_is_sleepable_hook(u32 btf_id)
 {
