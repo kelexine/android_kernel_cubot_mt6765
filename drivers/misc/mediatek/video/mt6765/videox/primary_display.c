@@ -4045,16 +4045,17 @@ int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 		DDP_OVL_GOLDEN_SETTING, &gset_arg);
 	replace_fb_addr_to_mva();
 
-	if (use_cmdq) {
-		/* make sure dsi configuration done before lcm init */
-		_cmdq_flush_config_handle(1, NULL, 0);
-		_cmdq_reset_config_handle();
-	}
-
 	if (!is_lcm_inited) {
+		if (use_cmdq) {
+			/* make sure dsi configuration done before lcm init */
+			_cmdq_flush_config_handle(1, NULL, 0);
+			_cmdq_reset_config_handle();
+		}
 		ret = disp_lcm_init(pgc->plcm, 1);
 	}
-	primary_display_set_lcm_power_state_nolock(LCM_ON);
+	if (ret == 0)
+		primary_display_set_lcm_power_state_nolock(LCM_ON);
+
 	DISPCHECK("primary_display_init->dpmgr_path_start\n");
 	/* path start must after lcm init for video mode
 	 * because dsi_start will set mode
@@ -4064,16 +4065,17 @@ int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 	if (use_cmdq) {
 		_cmdq_flush_config_handle(1, NULL, 0);
 		_cmdq_reset_config_handle();
-	}
-
 #ifdef CONFIG_MTK_M4U
-	config_display_m4u_port();
+		config_display_m4u_port();
 #endif
-
-
-	if (use_cmdq)
 		_cmdq_insert_wait_frame_done_token_mira(
 			pgc->cmdq_handle_config);
+	} else {
+#ifdef CONFIG_MTK_M4U
+		config_display_m4u_port();
+#endif
+	}
+
 	if (!is_lcm_inited && primary_display_is_video_mode())
 		dpmgr_path_trigger(pgc->dpmgr_handle, NULL, 0);
 

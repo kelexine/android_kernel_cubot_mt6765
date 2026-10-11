@@ -390,12 +390,12 @@ void disp_helper_option_init(void)
 	disp_helper_set_option(DISP_OPT_PARTIAL_UPDATE, 1);
 
 	disp_helper_set_option(DISP_OPT_CV_BYSUSPEND, 1);
-	disp_helper_set_option(DISP_OPT_DELAYED_TRIGGER, 1);
+	disp_helper_set_option(DISP_OPT_DELAYED_TRIGGER, 0);
 	disp_helper_set_option(DISP_OPT_SHADOW_REGISTER, 0);
-	disp_helper_set_option(DISP_OPT_SHADOW_MODE, 0);
+	disp_helper_set_option(DISP_OPT_SHADOW_MODE, 1);
 
 	/* smart layer OVL*/
-	disp_helper_set_option(DISP_OPT_OVL_EXT_LAYER, 1);
+	disp_helper_set_option(DISP_OPT_OVL_EXT_LAYER, 0);
 
 	disp_helper_set_option(DISP_OPT_REG_PARSER_RAW_DUMP, 0);
 
@@ -403,19 +403,19 @@ void disp_helper_option_init(void)
 
 	/* ARR phase 1 option*/
 	disp_helper_set_option(DISP_OPT_ARR_PHASE_1, 0);
-	/* HW does not support this */
-	disp_helper_set_option(DISP_OPT_RSZ, 0);
-	disp_helper_set_option(DISP_OPT_RPO, 1);
-	disp_helper_set_option(DISP_OPT_DUAL_PIPE, 0);
-	disp_helper_set_option(DISP_OPT_SHARE_WDMA0, 1);
-	disp_helper_set_option(DISP_OPT_FRAME_QUEUE, 0);
+	disp_helper_set_option(DISP_OPT_RSZ, 1);
+	disp_helper_set_option(DISP_OPT_RPO, 0);
+	disp_helper_set_option(DISP_OPT_DUAL_PIPE, 1);
+	disp_helper_set_option(DISP_OPT_SHARE_WDMA0, 0);
+	disp_helper_set_option(DISP_OPT_FRAME_QUEUE, 1);
 	disp_helper_set_option(DISP_OPT_ROUND_CORNER, 1);
 
 	/* OVL SBCH */
 	disp_helper_set_option(DISP_OPT_OVL_SBCH, 1);
-	disp_helper_set_option(DISP_OPT_GMO_OPTIMIZE, 1);
-	disp_helper_set_option(DISP_OPT_DSI_UNDERRUN_AEE, 1);
 	disp_helper_set_option(DISP_OPT_RDMA_UNDERFLOW_AEE, 1);
+	disp_helper_set_option(DISP_OPT_SHOW_VISUAL_DEBUG_INFO, 1);
+	disp_helper_set_option(DISP_OPT_GMO_OPTIMIZE, 0);
+	disp_helper_set_option(DISP_OPT_DSI_UNDERRUN_AEE, 1);
 	disp_helper_set_option(DISP_OPT_TUI_MODE, 0);
 	/*DynFPS*/
 	disp_helper_set_option(DISP_OPT_DYNAMIC_FPS, 1);
