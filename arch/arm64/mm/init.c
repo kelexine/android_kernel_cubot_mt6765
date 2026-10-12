@@ -639,20 +639,15 @@ void __init mem_init(void)
 
 void free_initmem(void)
 {
-	pr_info("=== [BOOT] free_initmem: __init_begin=%px, __init_end=%px ===\n", __init_begin, __init_end);
-	pr_info("=== [BOOT] free_initmem: lm_alias(__init_begin)=%px, lm_alias(__init_end)=%px ===\n", lm_alias(__init_begin), lm_alias(__init_end));
-	pr_info("=== [BOOT] free_initmem: calling free_reserved_area ===\n");
 	free_reserved_area(lm_alias(__init_begin),
 			   lm_alias(__init_end),
 			   0, "unused kernel");
-	pr_info("=== [BOOT] free_initmem: free_reserved_area returned, calling unmap_kernel_range ===\n");
 	/*
 	 * Unmap the __init region but leave the VM area in place. This
 	 * prevents the region from being reused for kernel modules, which
 	 * is not supported by kallsyms.
 	 */
 	unmap_kernel_range((u64)__init_begin, (u64)(__init_end - __init_begin));
-	pr_info("=== [BOOT] free_initmem: unmap_kernel_range returned ===\n");
 }
 
 #ifdef CONFIG_BLK_DEV_INITRD

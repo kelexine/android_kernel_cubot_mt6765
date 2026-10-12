@@ -1099,26 +1099,19 @@ static int __ref kernel_init(void *unused)
 {
 	int ret;
 
-	pr_info("=== [BOOT] Entering kernel_init_freeable ===\n");
 	kernel_init_freeable();
-	pr_info("=== [BOOT] kernel_init_freeable returned, calling async_synchronize_full ===\n");
 	/* need to finish all async __init code before freeing the memory */
 	async_synchronize_full();
-	pr_info("=== [BOOT] async_synchronize_full finished, freeing initmem ===\n");
 	ftrace_free_init_mem();
 	jump_label_invalidate_initmem();
-	pr_info("=== [BOOT] calling free_initmem ===\n");
 	free_initmem();
-	pr_info("=== [BOOT] free_initmem returned, calling mark_readonly ===\n");
 	mark_readonly();
-	pr_info("=== [BOOT] mark_readonly returned, calling pti_finalize ===\n");
 
 	/*
 	 * Kernel mappings are now finalized - update the userspace page-table
 	 * to finalize PTI.
 	 */
 	pti_finalize();
-	pr_info("=== [BOOT] pti_finalize returned, setting SYSTEM_RUNNING ===\n");
 
 	system_state = SYSTEM_RUNNING;
 	numa_default_policy();
@@ -1126,10 +1119,8 @@ static int __ref kernel_init(void *unused)
 	rcu_end_inkernel_boot();
 
 	bootprof_log_boot("Kernel_init_done");
-	pr_info("=== [BOOT] Kernel_init_done! Checking /init on ramdisk ===\n");
 
 	if (ramdisk_execute_command) {
-		pr_info("=== [BOOT] Attempting to execute ramdisk_execute_command: '%s' ===\n", ramdisk_execute_command);
 		ret = run_init_process(ramdisk_execute_command);
 		if (!ret)
 			return 0;
@@ -1144,7 +1135,6 @@ static int __ref kernel_init(void *unused)
 	 * trying to recover a really broken machine.
 	 */
 	if (execute_command) {
-		pr_info("=== [BOOT] Attempting to execute execute_command: '%s' ===\n", execute_command);
 		ret = run_init_process(execute_command);
 		if (!ret)
 			return 0;
@@ -1194,9 +1184,7 @@ static noinline void __init kernel_init_freeable(void)
 	/* Initialize page ext after all struct pages are initialized. */
 	page_ext_init();
 
-	pr_info("=== [BOOT] Calling do_basic_setup (do_initcalls) ===\n");
 	do_basic_setup();
-	pr_info("=== [BOOT] do_basic_setup returned ===\n");
 
 	/* Open the /dev/console on the rootfs, this should never fail */
 	if (ksys_open((const char __user *) "/dev/console", O_RDWR, 0) < 0)
@@ -1212,14 +1200,10 @@ static noinline void __init kernel_init_freeable(void)
 	if (!ramdisk_execute_command)
 		ramdisk_execute_command = "/init";
 
-	pr_info("=== [BOOT] Checking access to ramdisk_execute_command: '%s' ===\n", ramdisk_execute_command);
 	if (ksys_access((const char __user *)
 			ramdisk_execute_command, 0) != 0) {
-		pr_err("=== [BOOT] '%s' NOT accessible on rootfs, falling back to prepare_namespace ===\n", ramdisk_execute_command);
 		ramdisk_execute_command = NULL;
 		prepare_namespace();
-	} else {
-		pr_info("=== [BOOT] '%s' is accessible on rootfs! ===\n", ramdisk_execute_command);
 	}
 
 	/*
