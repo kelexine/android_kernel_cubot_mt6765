@@ -645,7 +645,7 @@ static int __init disp_late(void)
 	if (ret < 0)
 		pr_info("get dsv_pos fail, ret = %d\n", ret);
 
-	display_bias_enable();
+	display_bias_enable_uv(5400000);
 
 	DDPMSG("disp driver(1) disp_late end\n");
 	return 0;

@@ -52,38 +52,8 @@ EXPORT_SYMBOL(display_bias_regulator_init);
 
 int display_bias_enable(void)
 {
-	int ret = 0;
-	int retval = 0;
-
-	display_bias_regulator_init();
-
-	/* set voltage */
-	ret = regulator_set_voltage(disp_bias_pos, 5400000, 6000000);
-	if (ret < 0)
-		pr_info("set voltage disp_bias_pos fail, ret = %d\n", ret);
-	retval |= ret;
-
-	ret = regulator_set_voltage(disp_bias_neg, 5400000, 6000000);
-	if (ret < 0)
-		pr_info("set voltage disp_bias_neg fail, ret = %d\n", ret);
-	retval |= ret;
-
-	/* enable regulator: pos -> 10ms delay -> neg */
-	ret = regulator_enable(disp_bias_pos);
-	if (ret < 0)
-		pr_info("enable regulator disp_bias_pos fail, ret = %d\n",
-			ret);
-	retval |= ret;
-
-	mdelay(10);
-
-	ret = regulator_enable(disp_bias_neg);
-	if (ret < 0)
-		pr_info("enable regulator disp_bias_neg fail, ret = %d\n",
-			ret);
-	retval |= ret;
-
-	return retval;
+	/* Pin both DSV rails to exactly 5.4V matching stock MT6765 baseline */
+	return display_bias_enable_uv(5400000);
 }
 EXPORT_SYMBOL(display_bias_enable);
 

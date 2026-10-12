@@ -554,6 +554,7 @@ enum DISP_MODULE_ENUM ddp_get_module_id_by_idx(
 enum DISP_MODULE_ENUM disp_irq_to_module(unsigned int irq);
 const char *ddp_get_ioctl_name(enum DDP_IOCTL_NAME ioctl);
 extern int display_bias_enable(void);
+extern int display_bias_enable_uv(unsigned int voltage_uv);
 extern int display_bias_regulator_init(void);
 
 #endif
