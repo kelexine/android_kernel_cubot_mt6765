@@ -7369,7 +7369,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 
 	/* Bail out if no candidate was found. */
 	weight = cpumask_weight(candidates);
-#ifdef OPLUS_FEATURE_SCHED_ASSIST
+#ifdef CONFIG_SCHED_WALT
 	if (!weight && (is_animator_ux_task(p) || sysctl_slide_boost_enabled))
 		set_ux_task_cpu_common_by_prio(p, &best_energy_cpu, true, false);
 #endif

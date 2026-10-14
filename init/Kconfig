@@ -424,7 +424,6 @@ config IRQ_TIME_ACCOUNTING
 
 	  If in doubt, say N here.
 
-#ifdef OPLUS_FEATURE_UIFIRST
 config SCHED_WALT
 	bool "Support window based load tracking"
 	depends on SMP
@@ -433,7 +432,6 @@ config SCHED_WALT
 	  based set of metrics for tasks and runqueues. These metrics can be
 	  used to guide task placement as well as task frequency requirements
 	  for cpufreq governors.
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 config HAVE_SCHED_AVG_IRQ
 	def_bool y
