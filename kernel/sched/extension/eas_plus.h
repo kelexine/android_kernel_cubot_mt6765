@@ -22,7 +22,7 @@
 #ifdef CONFIG_MTK_SCHED_CPU_PREFER
 #define LB_CPU_PREFER   (0x10  << LB_POLICY_SHIFT)
 #endif
-#if defined (CONFIG_SCHED_WALT) && defined (OPLUS_FEATURE_UIFIRST)
+#ifdef CONFIG_SCHED_WALT
 #define LB_UX_BOOST      (0x88  << LB_POLICY_SHIFT)
 #endif
 

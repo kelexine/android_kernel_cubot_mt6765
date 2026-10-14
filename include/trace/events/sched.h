@@ -1073,7 +1073,7 @@ TRACE_EVENT(sched_overutilized,
 		__entry->overutilized)
 );
 
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 extern unsigned int walt_ravg_window;
 extern bool walt_disabled;
 
@@ -1230,7 +1230,7 @@ TRACE_EVENT(walt_task_util,
 			__entry->pid, __entry->comm, __entry->util_demand, __entry->util_sum,
 			__entry->util_curr_window, __entry->util_prev_window)
 );
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 
 #endif /* CONFIG_SMP */
 #endif /* _TRACE_SCHED_H */

@@ -1953,9 +1953,7 @@ next_level:
  * Build sched domains for a given set of CPUs and attach the sched domains
  * to the individual CPUs
  */
-#ifdef OPLUS_FEATURE_UIFIRST
 extern void update_ux_sched_cputopo(void);
-#endif
 static int
 build_sched_domains(const struct cpumask *cpu_map, struct sched_domain_attr *attr)
 {
@@ -2033,9 +2031,7 @@ build_sched_domains(const struct cpumask *cpu_map, struct sched_domain_attr *att
 		static_branch_enable_cpuslocked(&sched_asym_cpucapacity);
 
 	ret = 0;
-#ifdef OPLUS_FEATURE_UIFIRST
 	update_ux_sched_cputopo();
-#endif
 error:
 	__free_domain_allocs(&d, alloc_state, cpu_map);
 

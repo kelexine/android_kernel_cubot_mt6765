@@ -214,7 +214,6 @@ struct task_group;
 
 #endif
 
-#ifdef OPLUS_FEATURE_UIFIRST
 extern int sysctl_uifirst_enabled;
 extern int sysctl_launcher_boost_enabled;
 extern int sysctl_slide_boost_enabled;
@@ -231,7 +230,6 @@ enum task_event {
 	TASK_UPDATE     = 4,
 	IRQ_UPDATE	= 5,
 };
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
 
 /* Task command name length: */
 #define TASK_COMM_LEN			16
@@ -679,7 +677,7 @@ union reclaim_limit {
 };
 #endif
 
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 #define RAVG_HIST_SIZE_MAX 5
 
 /* ravg represents frequency scaled cpu-demand of tasks */
@@ -712,7 +710,7 @@ struct ravg {
 	u32 curr_window, prev_window;
 	u16 active_windows;
 };
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 
 struct task_struct {
 #ifdef CONFIG_THREAD_INFO_IN_TASK
@@ -1386,7 +1384,6 @@ struct task_struct {
 	/* Used by LSM modules for access restriction: */
 	void				*security;
 #endif
-#ifdef OPLUS_FEATURE_UIFIRST
 	int static_ux;
 	atomic64_t dynamic_ux;
 	struct list_head ux_entry;
@@ -1396,18 +1393,17 @@ struct task_struct {
 #ifdef CONFIG_CAMERA_OPT
 	int camera_opt;
 #endif
-#endif /* OPLUS_FEATURE_UIFIRST */
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 	struct ravg ravg;
 	/*
 	 * 'init_load_pct' represents the initial task load assigned to children
 	 * of this task
 	 */
 	u32 init_load_pct;
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#endif /* CONFIG_SCHED_WALT */
+#ifdef CONFIG_SCHED_WALT
 	u64 last_wake_ts;
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 #ifdef OPLUS_FEATURE_HEALTHINFO
 #ifdef CONFIG_OPPO_JANK_INFO
 	int jank_trace;
@@ -1856,19 +1852,15 @@ extern void __set_task_comm(struct task_struct *tsk, const char *from, bool exec
 extern pid_t alloc_svc_tgid;
 #endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 
-#ifdef OPLUS_FEATURE_UIFIRST
 extern int  allocator_server_pid;
-#endif
 
 static inline void set_task_comm(struct task_struct *tsk, const char *from)
 {
 	__set_task_comm(tsk, from, false);
 
-#ifdef OPLUS_FEATURE_UIFIRST
         if ((tsk->tgid == allocator_server_pid && allocator_server_pid != 0)){
                 tsk->static_ux = 2;
         }
-#endif
 
 #ifdef CONFIG_CAMERA_OPT
 	set_camera_opt(tsk);

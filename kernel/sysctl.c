@@ -106,9 +106,9 @@
 #include <linux/multi_kswapd.h>
 #endif /*OPLUS_FEATURE_MULTI_KSWAPD*/
 
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 extern unsigned int sysctl_sched_walt_init_task_load_pct;
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 
 #if defined(CONFIG_SYSCTL)
 
@@ -158,7 +158,7 @@ static int one_thousand = 1000;
 #if defined(OPLUS_FEATURE_FG_IO_OPT) && defined(CONFIG_OPLUS_FG_IO_OPT)
 unsigned int sysctl_fg_io_opt = 1;
 #endif /*OPLUS_FEATURE_FG_IO_OPT*/
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+#ifdef CONFIG_OPLUS_FEATURE_UXIO_FIRST
 unsigned int sysctl_uxio_io_opt = true;
 bool sysctl_wbt_enable = true;
 #endif
@@ -340,12 +340,10 @@ static int max_sched_tunable_scaling = SCHED_TUNABLESCALING_END-1;
 #endif /* CONFIG_SMP */
 #endif /* CONFIG_SCHED_DEBUG */
 
-#ifdef OPLUS_FEATURE_UIFIRST
 int sysctl_uifirst_enabled = 1;
 int sysctl_launcher_boost_enabled = 0;
-#endif /* OPLUS_FEATURE_UIFIRST */
 
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 int sysctl_slide_boost_enabled = 0;
 int sysctl_boost_task_threshold = 51;
 #ifdef CONFIG_CAMERA_OPT
@@ -368,7 +366,7 @@ int sched_frame_rate_handler(struct ctl_table *table, int write, void __user *bu
 
 	return ret;
 }
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 
 #ifdef CONFIG_COMPACTION
 static int min_extfrag_threshold;
@@ -417,7 +415,7 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+#ifdef CONFIG_OPLUS_FEATURE_UXIO_FIRST
 {
 		.procname	= "uxio_first_opt",
 		.data		= &sysctl_uxio_io_opt,
@@ -1434,7 +1432,6 @@ static struct ctl_table kern_table[] = {
 		.extra2		= &one,
 	},
 #endif
-#ifdef OPLUS_FEATURE_UIFIRST
 	{
 		.procname	= "uifirst_enabled",
 		.data		= &sysctl_uifirst_enabled,
@@ -1449,8 +1446,7 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0666,
 		.proc_handler = proc_dointvec,
 	},
-#endif /* OPLUS_FEATURE_UIFIRST */
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 	{
 		.procname	= "sched_walt_init_task_load_pct",
 		.data		= &sysctl_sched_walt_init_task_load_pct,
@@ -1458,8 +1454,8 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#endif /* CONFIG_SCHED_WALT */
+#ifdef CONFIG_SCHED_WALT
 	{
 		.procname	= "slide_boost_enabled",
 		.data		= &sysctl_slide_boost_enabled,
@@ -1490,7 +1486,7 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0666,
 		.proc_handler = sched_frame_rate_handler,
 	},
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 #ifdef OPLUS_FEATURE_TASK_CPUSTATS
 #ifdef CONFIG_OPLUS_CTP
 	{

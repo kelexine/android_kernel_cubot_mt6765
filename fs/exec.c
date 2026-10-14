@@ -77,9 +77,7 @@ int suid_dumpable = 0;
 static LIST_HEAD(formats);
 static DEFINE_RWLOCK(binfmt_lock);
 
-#ifdef OPLUS_FEATURE_UIFIRST
 pid_t allocator_server_pid = 0;
-#endif
 
 void __register_binfmt(struct linux_binfmt * fmt, int insert)
 {
@@ -1375,12 +1373,10 @@ void setup_new_exec(struct linux_binprm * bprm)
 
 	arch_setup_new_exec();
 	perf_event_exec();
-#ifdef OPLUS_FEATURE_UIFIRST
 	if(strstr(bprm->filename, "allocator@4.0-s")){
 		current->static_ux = 2;
 		allocator_server_pid = current->pid;
 	}
-#endif
 	__set_task_comm(current, kbasename(bprm->filename), true);
 
 	/* Set the new mm task size. We have to do that late because it may

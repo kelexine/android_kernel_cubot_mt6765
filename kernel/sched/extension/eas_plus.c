@@ -4,9 +4,7 @@
  */
 #include "sched.h"
 #include <trace/events/sched.h>
-#ifdef OPLUS_FEATURE_UIFIRST
 #include <linux/uifirst/uifirst_sched_common.h>
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 DEFINE_PER_CPU(struct task_struct*, migrate_task);
 static int idle_pull_cpu_stop(void *data)
@@ -798,11 +796,9 @@ unsigned int aggressive_idle_pull(int this_cpu)
 	 */
 	if (cpu_is_slowest(this_cpu)) {
 		slowest_domain_idle_prefer_pull(this_cpu, &p, &src_rq);
-#ifdef OPLUS_FEATURE_UIFIRST
 		if(p && sysctl_uifirst_enabled && (sysctl_launcher_boost_enabled || sysctl_slide_boost_enabled) &&
 			is_heavy_ux_task(p) && test_ux_task_cpu(task_cpu(p)))
 			goto done;
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 		if (p) {
 			trace_sched_migrate(p, this_cpu, cpu_of(src_rq),

@@ -1029,17 +1029,13 @@ struct rq {
 	int			idle_state_idx;
 #endif
 
-#ifdef OPLUS_FEATURE_UIFIRST
 	struct list_head ux_thread_list;
 	int active_ux_balance;
 	struct cpu_stop_work ux_balance_work;
-#endif /* OPLUS_FEATURE_UIFIRST */
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 	u64 window_start;
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
-#ifdef OPLUS_FEATURE_UIFIRST
+#endif /* CONFIG_SCHED_WALT */
 	u64 ux_task_load;
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 };
 
@@ -2416,6 +2412,11 @@ unsigned long uclamp_rq_util_with(struct rq *rq, unsigned long util,
 #endif /* CONFIG_UCLAMP_TASK */
 
 unsigned long task_util_est(struct task_struct *p);
+
+static inline unsigned long task_util(struct task_struct *p)
+{
+	return READ_ONCE(p->se.avg.util_avg);
+}
 unsigned int uclamp_task(struct task_struct *p);
 bool uclamp_latency_sensitive(struct task_struct *p);
 bool uclamp_boosted(struct task_struct *p);
@@ -2450,30 +2451,30 @@ enum schedutil_type {
 	ENERGY_UTIL,
 };
 
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 #include "walt.h"
 extern u64 ux_task_load[];
 extern u64 ux_load_ts[];
 extern unsigned int walt_ravg_window;
 #define UX_LOAD_WINDOW 8000000
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 
 
 #ifdef CONFIG_SMP
 static inline unsigned long cpu_util_cfs(struct rq *rq)
 {
 	unsigned long util = READ_ONCE(rq->cfs.avg.util_avg);
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 	u64 wallclock = walt_ktime_clock();
 	u64 timeline = 0;
 	int cpu = rq->cpu;
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 
 	if (sched_feat(UTIL_EST)) {
 		util = max_t(unsigned long, util,
 			     READ_ONCE(rq->cfs.avg.util_est.enqueued));
 	}
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 	if (sysctl_uifirst_enabled && sysctl_slide_boost_enabled && ux_task_load[cpu]) {
 		timeline = wallclock - ux_load_ts[cpu];
 
@@ -2486,7 +2487,7 @@ static inline unsigned long cpu_util_cfs(struct rq *rq)
 
 		return min_t(unsigned long, util, capacity_orig_of(cpu));
 	}
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 
 
 	return util;

@@ -44,6 +44,7 @@ endif
 CFLAGS_cfi.o = $(DISABLE_CFI_CLANG)
 
 obj-y += sched/
+obj-y += uifirst/
 obj-y += locking/
 obj-y += power/
 obj-y += printk/

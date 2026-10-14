@@ -27,6 +27,7 @@
  *  of the License.
  */
 #include "sched.h"
+#include <linux/uifirst/uifirst_sched_common.h>
 
 /* Convert between a 140 based task->prio, and our 102 based cpupri */
 static int convert_prio(int prio)
@@ -45,7 +46,6 @@ static int convert_prio(int prio)
 	return cpupri;
 }
 
-#ifdef OPLUS_FEATURE_UIFIRST
 extern void drop_ux_task_cpus(struct task_struct *p, struct cpumask *lowest_mask);
 extern bool ux_task_misfit(struct task_struct *p, int cpu);
 extern struct ux_sched_cputopo ux_sched_cputopo;
@@ -59,7 +59,6 @@ void kick_min_cpu_from_mask(struct cpumask *lowest_mask)
 		cpu = cpumask_next(cpu, lowest_mask);
 	}
 }
-#endif /* OPLUS_FEATURE_UIFIRST */
 static inline int __cpupri_find(struct cpupri *cp, struct task_struct *p,
 				struct cpumask *lowest_mask, int idx)
 {

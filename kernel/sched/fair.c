@@ -33,14 +33,14 @@
 #include <soc/oplus/oppo_healthinfo.h>
 #endif
 #endif /* OPLUS_FEATURE_HEALTHINFO */
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 #include <linux/sched.h>
 extern u64 ux_task_load[];
 extern u64 ux_load_ts[];
 extern unsigned int walt_ravg_window;
 #define walt_scale_demand_divisor (walt_ravg_window >> SCHED_CAPACITY_SHIFT)
 #define scale_demand(d) ((d)/walt_scale_demand_divisor)
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 /*
  * Targeted preemption latency for CPU-bound tasks:
  *
@@ -113,9 +113,7 @@ unsigned int normalized_sysctl_sched_wakeup_granularity	= 1000000UL;
 
 const_debug unsigned int sysctl_sched_migration_cost	= 50000UL;
 
-#ifdef OPLUS_FEATURE_UIFIRST
 #include <linux/uifirst/uifirst_sched_common.h>
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 #ifdef CONFIG_SMP
 /*
@@ -3781,11 +3779,6 @@ static inline unsigned long cfs_rq_load_avg(struct cfs_rq *cfs_rq)
 
 static int idle_balance(struct rq *this_rq, struct rq_flags *rf);
 
-static inline unsigned long task_util(struct task_struct *p)
-{
-	return READ_ONCE(p->se.avg.util_avg);
-}
-
 static inline unsigned long _task_util_est(struct task_struct *p)
 {
 	struct util_est ue = READ_ONCE(p->se.avg.util_est);
@@ -4031,9 +4024,7 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 
 	/* ensure we never gain time by being placed backwards. */
 	se->vruntime = max_vruntime(se->vruntime, vruntime);
-#ifdef OPLUS_FEATURE_UIFIRST
 	place_entity_adjust_ux_task(cfs_rq, se, initial);
-#endif
 }
 
 static void check_enqueue_throttle(struct cfs_rq *cfs_rq);
@@ -5298,11 +5289,7 @@ static inline void hrtick_update(struct rq *rq)
 #endif
 
 #ifdef CONFIG_SMP
-#ifdef OPLUS_FEATURE_UIFIRST
 unsigned long cpu_util(int cpu);
-#else
-static inline unsigned long cpu_util(int cpu);
-#endif /* OPLUS_FEATURE_UIFIRST */
 static unsigned long capacity_of(int cpu);
 
 static inline bool cpu_overutilized(int cpu)
@@ -5385,11 +5372,9 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
 		flags = ENQUEUE_WAKEUP;
 	}
-#ifdef OPLUS_FEATURE_UIFIRST
 	if (sysctl_uifirst_enabled) {
 		enqueue_ux_thread(rq, p);
 	}
-#endif /* OPLUS_FEATURE_UIFIRST */
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
 		cfs_rq->h_nr_running++;
@@ -5491,11 +5476,9 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 		}
 		flags |= DEQUEUE_SLEEP;
 	}
-#ifdef OPLUS_FEATURE_UIFIRST
 	if (sysctl_uifirst_enabled) {
 		dequeue_ux_thread(rq, p);
 	}
-#endif /* OPLUS_FEATURE_UIFIRST */
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
 		cfs_rq->h_nr_running--;
@@ -6623,11 +6606,7 @@ static int select_idle_sibling(struct task_struct *p, int prev, int target)
  *
  * Return: the (estimated) utilization for the specified CPU
  */
-#ifdef OPLUS_FEATURE_UIFIRST
 unsigned long cpu_util(int cpu)
-#else
-static inline unsigned long cpu_util(int cpu)
-#endif /* OPLUS_FEATURE_UIFIRST */
 {
 	struct cfs_rq *cfs_rq;
 	unsigned int util;
@@ -6640,9 +6619,7 @@ static inline unsigned long cpu_util(int cpu)
 
 	return min_t(unsigned long, util, capacity_orig_of(cpu));
 }
-#ifdef OPLUS_FEATURE_UIFIRST
 EXPORT_SYMBOL(cpu_util);
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 /*
  * cpu_util_without: compute cpu utilization without any contributions from *p
@@ -6796,7 +6773,6 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 			if (cpu_isolated(i))
 				continue;
 
-#ifdef OPLUS_FEATURE_UIFIRST
 			if (sysctl_uifirst_enabled && test_task_ux(p)) {
 				if (sysctl_launcher_boost_enabled && is_heavy_ux_task(p) && !test_ux_task_cpu(i))
 					continue;
@@ -6809,7 +6785,6 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 						continue;
 				}
 			}
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 #ifdef CONFIG_MTK_SCHED_INTEROP
 			if (cpu_rq(i)->rt.rt_nr_running &&
@@ -7297,14 +7272,12 @@ static void select_cpu_candidates(struct sched_domain *sd, cpumask_t *cpus,
 		cpumask_set_cpu(highest_spare_cap_cpu, cpus);
 }
 
-#ifdef OPLUS_FEATURE_UIFIRST
 bool static inline is_heavy_boost_task(struct task_struct *p)
 {
 	return sysctl_uifirst_enabled && (sysctl_launcher_boost_enabled || sysctl_slide_boost_enabled)
 		&& is_heavy_ux_task(p);
 }
 bool ux_task_misfit(struct task_struct *p, int cpu);
-#endif  /* OPLUS_FEATURE_UIFIRST */
 
 static DEFINE_PER_CPU(cpumask_t, energy_cpus);
 
@@ -7358,11 +7331,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 	struct sched_domain *sd;
 	cpumask_t *candidates;
 
-#ifdef OPLUS_FEATURE_UIFIRST
 	if (sysctl_sched_sync_hint_enable && sync && !is_heavy_ux_task(p)) {
-#else  /* OPLUS_FEATURE_UIFIRST */
-	if (sysctl_sched_sync_hint_enable && sync) {
-#endif  /* OPLUS_FEATURE_UIFIRST */
 		cpu = smp_processor_id();
 		if (cpumask_test_cpu(cpu, &p->cpus_allowed) &&
 			!cpu_isolated(cpu))
@@ -7371,11 +7340,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 
 	rcu_read_lock();
 	pd = rcu_dereference(rd->pd);
-#ifdef OPLUS_FEATURE_UIFIRST
 	if (!pd || (READ_ONCE(rd->overutilized) && !is_heavy_ux_task(p))) {
-#else  /* OPLUS_FEATURE_UIFIRST */
-	if (!pd || READ_ONCE(rd->overutilized)) {
-#endif  /* OPLUS_FEATURE_UIFIRST */
 		goto fail;
 	}
 
@@ -7443,23 +7408,21 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 unlock:
 	rcu_read_unlock();
 
-#ifdef OPLUS_FEATURE_UIFIRST
 		if (sysctl_uifirst_enabled && sysctl_launcher_boost_enabled &&
 			is_heavy_ux_task(p) && !test_ux_prefer_cpu(p, best_energy_cpu)) {
 			find_ux_task_cpu(p, &best_energy_cpu);
 			if (test_ux_task_cpu(best_energy_cpu))
 				return best_energy_cpu;
 		}
-#endif  /* OPLUS_FEATURE_UIFIRST */
 
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 		if (sysctl_uifirst_enabled && sysctl_slide_boost_enabled && is_heavy_ux_task(p) &&
 			ux_task_misfit(p, best_energy_cpu)) {
 			find_ux_task_cpu(p, &best_energy_cpu);
 			if (test_ux_task_cpu(best_energy_cpu))
 				return best_energy_cpu;
 		}
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 
 
 	/*
@@ -7581,7 +7544,7 @@ sd_loop:
 
 	return select_reason | new_cpu;
 }
-#if defined (CONFIG_SCHED_WALT) && defined (OPLUS_FEATURE_UIFIRST)
+#ifdef CONFIG_SCHED_WALT
 extern void find_ux_task_cpu_capacity(struct task_struct *tsk, int *target_cpu);
 #endif
 static inline int
@@ -7597,7 +7560,7 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag,
 	select_task_prefer_cpu_fair(p, &result);
 #endif
         cpu = (result & LB_CPU_MASK);
-#if defined (CONFIG_SCHED_WALT) && defined (OPLUS_FEATURE_UIFIRST)
+#ifdef CONFIG_SCHED_WALT
 	if (sysctl_uifirst_enabled && (sysctl_launcher_boost_enabled || sysctl_slide_boost_enabled) &&
 		is_heavy_ux_task(p) && ux_task_misfit(p, cpu)) {
 		find_ux_task_cpu_capacity(p, &cpu);
@@ -7827,12 +7790,10 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 		goto preempt;
 	}
 #endif
-#ifdef OPLUS_FEATURE_UIFIRST
 	if (should_ux_preempt_wakeup(p, curr))
 		goto preempt;
 	else if (test_task_ux(curr))
 		return;
-#endif /* OPLUS_FEATURE_UIFIRST */
 	if (wakeup_preempt_entity(se, pse) == 1) {
 		/*
 		 * Bias pick_next to pick the sched entity that is
@@ -7923,11 +7884,9 @@ again:
 	} while (cfs_rq);
 
 	p = task_of(se);
-#ifdef OPLUS_FEATURE_UIFIRST
 	if (sysctl_uifirst_enabled) {
 		pick_ux_thread(rq, &p, &se);
 	}
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 	/*
 	 * Since we haven't yet done put_prev_entity and if the selected task
@@ -8424,17 +8383,17 @@ static void detach_task(struct task_struct *p, struct lb_env *env)
 
 	p->on_rq = TASK_ON_RQ_MIGRATING;
 	deactivate_task(env->src_rq, p, DEQUEUE_NOCLOCK);
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 	lockdep_off();
 	double_lock_balance(env->src_rq, env->dst_rq);
 	if (!(env->src_rq->clock_update_flags & RQCF_UPDATED))
 		update_rq_clock(env->src_rq);
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 	set_task_cpu(p, env->dst_cpu);
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 	double_unlock_balance(env->src_rq, env->dst_rq);
 	lockdep_on();
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 }
 
 /*
@@ -8473,7 +8432,6 @@ static struct task_struct *detach_one_task(struct lb_env *env)
 			continue;
 #endif
 
-#ifdef OPLUS_FEATURE_UIFIRST
 		if (sysctl_uifirst_enabled && test_task_ux(p)) {
 			if (is_heavy_boost_task(p) && test_ux_task_cpu(task_cpu(p)) &&
 					!test_ux_task_cpu(env->dst_cpu))
@@ -8482,7 +8440,6 @@ static struct task_struct *detach_one_task(struct lb_env *env)
 			if ((!sysctl_launcher_boost_enabled || p->static_ux != 2) && !list_empty(&env->dst_rq->ux_thread_list))
 				continue;
 		}
-#endif  /* OPLUS_FEATURE_UIFIRST */
 
 		detach_task(p, env);
 		/*
@@ -8542,7 +8499,6 @@ static int detach_tasks(struct lb_env *env)
 		if (!can_migrate_task(p, env))
 			goto next;
 
-#ifdef OPLUS_FEATURE_UIFIRST
 		if (sysctl_uifirst_enabled && test_task_ux(p)) {
 			if (is_heavy_boost_task(p) && test_ux_task_cpu(task_cpu(p)) &&
 					!test_ux_task_cpu(env->dst_cpu))
@@ -8551,7 +8507,6 @@ static int detach_tasks(struct lb_env *env)
 			if ((!sysctl_launcher_boost_enabled || p->static_ux != 2) && !list_empty(&env->dst_rq->ux_thread_list))
 				goto next;
 		}
-#endif /* OPLUS_FEATURE_UIFIRST */
 
 		load = task_h_load(p);
 
@@ -11358,10 +11313,8 @@ void task_check_for_rotation(struct rq *src_rq)
 		if (rq->nr_running > 1)
 			continue;
 
-#ifdef OPLUS_FEATURE_UIFIRST
 		if (is_heavy_boost_task(rq->curr))
 			continue;
-#endif  /* OPLUS_FEATURE_UIFIRST */
 
 		run = (rq->curr->se.sum_exec_runtime) -
 			(rq->curr->se.prev_sum_exec_runtime);
@@ -11417,7 +11370,7 @@ void task_check_for_rotation(struct rq *src_rq)
 	}
 }
 
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 extern struct ux_sched_cputopo ux_sched_cputopo;
 bool ux_task_misfit(struct task_struct *p, int cpu)
 {
@@ -11427,7 +11380,7 @@ bool ux_task_misfit(struct task_struct *p, int cpu)
 
 	return false;
 }
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 
 static DEFINE_RAW_SPINLOCK(migration_lock);
 static bool big_task_migration_enable = true;
@@ -11455,12 +11408,12 @@ void check_for_migration(struct task_struct *p)
 		}
 	}
 
-#if defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT)
+#ifdef CONFIG_SCHED_WALT
 	if (rq->misfit_task_load || (sysctl_uifirst_enabled && sysctl_slide_boost_enabled &&
 					p->static_ux == 2 && ux_task_misfit(p, cpu))) {
 #else
 	if (rq->misfit_task_load) {
-#endif /* defined(OPLUS_FEATURE_UIFIRST) && defined(CONFIG_SCHED_WALT) */
+#endif /* CONFIG_SCHED_WALT */
 		if (rq->curr->state != TASK_RUNNING ||
 			rq->curr->nr_cpus_allowed == 1)
 			return;
