@@ -152,7 +152,7 @@ int get_battery_current(struct mtk_charger *info)
 
 static int get_pmic_vbus(struct mtk_charger *info, int *vchr)
 {
-	union power_supply_propval prop;
+	union power_supply_propval prop = {0};
 	static struct power_supply *chg_psy;
 	int ret;
 
@@ -160,11 +160,12 @@ static int get_pmic_vbus(struct mtk_charger *info, int *vchr)
 		chg_psy = power_supply_get_by_name("mtk_charger_type");
 	if (chg_psy == NULL || IS_ERR(chg_psy)) {
 		pr_notice("%s Couldn't get chg_psy\n", __func__);
-		ret = -1;
-	} else {
-		ret = power_supply_get_property(chg_psy,
-			POWER_SUPPLY_PROP_VOLTAGE_NOW, &prop);
+		*vchr = 0;
+		return -1;
 	}
+
+	ret = power_supply_get_property(chg_psy,
+		POWER_SUPPLY_PROP_VOLTAGE_NOW, &prop);
 	*vchr = prop.intval;
 
 	pr_notice("%s vbus:%d\n", __func__,
@@ -228,7 +229,7 @@ bool is_battery_exist(struct mtk_charger *info)
 
 bool is_charger_exist(struct mtk_charger *info)
 {
-	union power_supply_propval prop;
+	union power_supply_propval prop = {0};
 	static struct power_supply *chg_psy;
 	int ret;
 
@@ -243,12 +244,12 @@ bool is_charger_exist(struct mtk_charger *info)
 #endif
 	if (chg_psy == NULL || IS_ERR(chg_psy)) {
 		pr_notice("%s Couldn't get chg_psy\n", __func__);
-		ret = -1;
-	} else {
-		ret = power_supply_get_property(chg_psy,
-			POWER_SUPPLY_PROP_ONLINE, &prop);
-		ret = prop.intval;
+		return false;
 	}
+
+	ret = power_supply_get_property(chg_psy,
+		POWER_SUPPLY_PROP_ONLINE, &prop);
+	ret = prop.intval;
 
 	chr_debug("%s:%d\n", __func__,
 		ret);
@@ -257,7 +258,7 @@ bool is_charger_exist(struct mtk_charger *info)
 
 int get_charger_type(struct mtk_charger *info)
 {
-	union power_supply_propval prop, prop2, prop3;
+	union power_supply_propval prop = {0}, prop2 = {0}, prop3 = {0};
 	static struct power_supply *chg_psy;
 	int ret;
 
@@ -272,22 +273,23 @@ int get_charger_type(struct mtk_charger *info)
 #endif
 	if (chg_psy == NULL || IS_ERR(chg_psy)) {
 		pr_notice("%s Couldn't get chg_psy\n", __func__);
-	} else {
-		ret = power_supply_get_property(chg_psy,
-				POWER_SUPPLY_PROP_ONLINE, &prop);
-
-		ret = power_supply_get_property(chg_psy,
-				POWER_SUPPLY_PROP_TYPE, &prop2);
-
-		ret = power_supply_get_property(chg_psy,
-				POWER_SUPPLY_PROP_USB_TYPE, &prop3);
-
-		if (prop.intval == 0)
-			prop2.intval = POWER_SUPPLY_TYPE_UNKNOWN;
-		else if (prop2.intval == POWER_SUPPLY_TYPE_USB &&
-		    prop3.intval == POWER_SUPPLY_USB_TYPE_DCP)
-			prop2.intval = POWER_SUPPLY_TYPE_USB_FLOAT;
+		return POWER_SUPPLY_TYPE_UNKNOWN;
 	}
+
+	ret = power_supply_get_property(chg_psy,
+			POWER_SUPPLY_PROP_ONLINE, &prop);
+
+	ret = power_supply_get_property(chg_psy,
+			POWER_SUPPLY_PROP_TYPE, &prop2);
+
+	ret = power_supply_get_property(chg_psy,
+			POWER_SUPPLY_PROP_USB_TYPE, &prop3);
+
+	if (prop.intval == 0)
+		prop2.intval = POWER_SUPPLY_TYPE_UNKNOWN;
+	else if (prop2.intval == POWER_SUPPLY_TYPE_USB &&
+	    prop3.intval == POWER_SUPPLY_USB_TYPE_DCP)
+		prop2.intval = POWER_SUPPLY_TYPE_USB_FLOAT;
 
 	pr_notice("%s online:%d type:%d usb_type:%d\n", __func__,
 		prop.intval,
@@ -303,7 +305,7 @@ int get_charger_temperature(struct mtk_charger *info,
 	int ret = 0;
 	int tchg_min = 0, tchg_max = 0;
 
-	if (info == NULL)
+	if (info == NULL || chg == NULL)
 		return 0;
 
 	ret = charger_dev_get_temperature(chg, &tchg_min, &tchg_max);

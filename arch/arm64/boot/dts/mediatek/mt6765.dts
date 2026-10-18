@@ -2534,7 +2534,7 @@ firmware_class.path=/vendor/firmware";
 		clock-names = "usb0",
 			"usb0_clk_top_sel",
 			"usb0_clk_univpll3_d4";
-		//charger = <&mt6370_chg>;
+		charger = <&mt6370_chg>;
 	};
 
 	usb_sif@11210000 {
@@ -3531,7 +3531,7 @@ firmware_class.path=/vendor/firmware";
 	charger: charger {
 		compatible = "mediatek,charger";
 		gauge = <&mtk_gauge>;
-		//charger = <&mt6370_chg>;
+		charger = <&mt6370_chg>;
 		bootmode = <&chosen>;
 		pmic = <&main_pmic>;
 
