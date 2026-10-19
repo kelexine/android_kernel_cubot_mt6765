@@ -15,7 +15,47 @@
 #include <linux/magic.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
+#include <linux/sched.h>
+#include <uapi/linux/sched/types.h>
 #include "erofs_fs.h"
+
+/* 4.19 backport compatibility helpers */
+static inline void attach_page_private(struct page *page, void *data)
+{
+	get_page(page);
+	set_page_private(page, (unsigned long)data);
+	SetPagePrivate(page);
+}
+
+static inline void *detach_page_private(struct page *page)
+{
+	void *data = (void *)page_private(page);
+
+	if (!PagePrivate(page))
+		return NULL;
+	ClearPagePrivate(page);
+	set_page_private(page, 0);
+	put_page(page);
+
+	return data;
+}
+
+#ifndef sched_set_fifo_low
+static inline void sched_set_fifo_low(struct task_struct *p)
+{
+	struct sched_param param = { .sched_priority = 1 };
+	sched_setscheduler_nocheck(p, SCHED_FIFO, &param);
+}
+#endif
+
+#ifndef sched_set_normal
+static inline void sched_set_normal(struct task_struct *p, int nice)
+{
+	struct sched_param param = { .sched_priority = 0 };
+	sched_setscheduler_nocheck(p, SCHED_NORMAL, &param);
+	set_user_nice(p, nice);
+}
+#endif
 
 /* redefine pr_fmt "erofs: " */
 #undef pr_fmt
