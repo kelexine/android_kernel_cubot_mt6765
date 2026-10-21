@@ -174,8 +174,8 @@ static int ilitek_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	idev->actual_tp_mode = P5_X_FW_AP_MODE;
 	idev->tp_data_len = P5_X_DEMO_MODE_PACKET_LEN;
 	idev->tp_data_mode = AP_MODE;
-	idev->reset = TP_IC_CODE_RST;
-	idev->rst_edge_delay = 5;
+	idev->reset = TP_HW_RST_ONLY;
+	idev->rst_edge_delay = 100;
 	idev->fw_open = FILP_OPEN;
 	idev->fw_upgrade_mode = UPGRADE_FLASH;
 	idev->mp_move_code = ilitek_tddi_move_mp_code_flash;

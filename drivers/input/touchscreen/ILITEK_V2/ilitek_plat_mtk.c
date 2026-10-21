@@ -36,9 +36,9 @@ void ilitek_plat_tp_reset(void)
 
 	/* Need accurate power sequence, do not change it to msleep */
 	tpd_gpio_output(idev->tp_rst, 1);
-	mdelay(1);
+	mdelay(10);
 	tpd_gpio_output(idev->tp_rst, 0);
-	mdelay(5);
+	mdelay(50);
 	tpd_gpio_output(idev->tp_rst, 1);
 	mdelay(idev->rst_edge_delay);
 }
@@ -332,7 +332,7 @@ int ilitek_plat_irq_register(int type)
 			idev->irq_num = irq_of_parse_and_map(node, 0);
 
 		if (idev->irq_num <= 0)
-			idev->irq_num = gpio_to_irq(MTK_INT_GPIO); /* GPIO 17 / EINT 17 */
+			idev->irq_num = gpio_to_irq(0);
 
 		ipio_info("idev->irq_num = %d\n", idev->irq_num);
 		get_irq_pin = true;

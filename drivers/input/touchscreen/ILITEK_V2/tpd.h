@@ -154,8 +154,8 @@ extern int tpd_em_spl_num;
 extern int tpd_em_pressure_threshold;
 extern struct tpd_device *tpd;
 extern void tpd_get_dts_info(void);
-#define GTP_RST_PORT    174
-#define GTP_INT_PORT    17 /* Cubot P50 / MT6765: touch INT is GPIO 17 / EINT 17 */
+#define GTP_RST_PORT    0
+#define GTP_INT_PORT    1
 extern void tpd_gpio_as_int(int pin);
 extern void tpd_gpio_output(int pin, int level);
 extern void tpd_gpio_mode_set(void);
