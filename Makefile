@@ -199,6 +199,14 @@ else
         endif
 endif
 
+ifneq ($(KBUILD_EXTMOD),)
+  ifeq ($(filter /%,$(KBUILD_EXTMOD)),)
+    ifneq ($(KBUILD_SRC),)
+      KBUILD_EXTMOD := $(abspath $(srctree)/$(KBUILD_EXTMOD))
+    endif
+  endif
+endif
+
 export KBUILD_CHECKSRC KBUILD_EXTMOD KBUILD_SRC
 
 objtree		:= .

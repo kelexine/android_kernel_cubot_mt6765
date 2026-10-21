@@ -181,6 +181,8 @@ static ssize_t
 sensorlist_read(struct file *file, char __user *buf,
 	size_t count, loff_t *ptr)
 {
+	struct sensorlist_info_t local_info[maxhandle];
+
 	if (!atomic_read(&first_ready_after_boot))
 		return -EINVAL;
 	if (count == 0)
@@ -191,11 +193,12 @@ sensorlist_read(struct file *file, char __user *buf,
 		count = maxhandle * sizeof(struct sensorlist_info_t);
 
 	spin_lock(&sensorlist_info_lock);
-	if (copy_to_user(buf, sensorlist_info, count)) {
-		spin_unlock(&sensorlist_info_lock);
-		return -EFAULT;
-	}
+	memcpy(local_info, sensorlist_info, count);
 	spin_unlock(&sensorlist_info_lock);
+
+	if (copy_to_user(buf, local_info, count))
+		return -EFAULT;
+
 	return count;
 }
 

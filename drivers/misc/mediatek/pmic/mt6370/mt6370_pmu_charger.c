@@ -4096,9 +4096,7 @@ static int mt6370_charger_get_online(struct mt6370_pmu_charger_data *chg_data,
 	bool pwr_rdy = false;
 
 #ifdef CONFIG_TCPC_CLASS
-	mutex_lock(&chg_data->attach_lock);
-	pwr_rdy = chg_data->attach;
-	mutex_unlock(&chg_data->attach_lock);
+	pwr_rdy = READ_ONCE(chg_data->attach);
 #else
 	ret = mt6370_pmu_reg_test_bit(chg_data->chip,
 		MT6370_PMU_REG_OVPCTRLSTAT,
