@@ -50,6 +50,9 @@ struct clone_args {
 	__aligned_u64 tls;
 };
 
+/* The size of the first version of user-space defined clone_args */
+#define CLONE_ARGS_SIZE_VER0 64
+
 /*
  * Scheduling policies
  */
