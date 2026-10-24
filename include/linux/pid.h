@@ -70,6 +70,7 @@ struct pid
 extern struct pid init_struct_pid;
 
 extern const struct file_operations pidfd_fops;
+extern struct pid *pidfd_pid(const struct file *file);
 
 static inline struct pid *get_pid(struct pid *pid)
 {
