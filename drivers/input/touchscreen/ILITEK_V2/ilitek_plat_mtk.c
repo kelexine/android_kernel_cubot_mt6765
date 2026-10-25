@@ -32,6 +32,11 @@ extern struct tpd_device *tpd;
 
 void ilitek_plat_tp_reset(void)
 {
+#if TDDI_RST_BIND
+	ipio_info("TDDI_RST_BIND enabled: skipping board HW RST pin toggle\n");
+	return;
+#endif
+
 	ipio_info("edge delay = %d\n", idev->rst_edge_delay);
 
 	/* Need accurate power sequence, do not change it to msleep */

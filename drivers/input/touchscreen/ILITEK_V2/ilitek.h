@@ -121,7 +121,7 @@
 #define AP_INT_TIMEOUT			600 /*600ms*/
 #define MP_INT_TIMEOUT			5000 /*5s*/
 #define MT_B_TYPE			ENABLE
-#define TDDI_RST_BIND			DISABLE
+#define TDDI_RST_BIND			ENABLE
 #define MT_PRESSURE			DISABLE
 #define ENABLE_WQ_ESD			DISABLE
 #define ENABLE_WQ_BAT			DISABLE
