@@ -33,13 +33,17 @@ int cts_plat_i2c_write(struct cts_platform_data *pdata, u8 i2c_addr,
 		       const void *src, size_t len, int retry, int delay)
 {
 	int ret = 0, retries = 0;
+	struct i2c_msg msg;
 
-	struct i2c_msg msg = {
-		.flags = 0,
-		.addr = i2c_addr,
-		.buf = (u8 *) src,
-		.len = len,
-	};
+	if (unlikely(!pdata || !pdata->i2c_client || !pdata->i2c_client->adapter)) {
+		cts_err("%s: invalid pdata or i2c client/adapter", __func__);
+		return -EINVAL;
+	}
+
+	msg.flags = 0;
+	msg.addr = i2c_addr;
+	msg.buf = (u8 *) src;
+	msg.len = len;
 
 	do {
 		ret = i2c_transfer(pdata->i2c_client->adapter, &msg, 1);
@@ -62,19 +66,22 @@ int cts_plat_i2c_read(struct cts_platform_data *pdata, u8 i2c_addr,
 		      int retry, int delay)
 {
 	int num_msg, ret = 0, retries = 0;
+	struct i2c_msg msgs[2];
 
-	struct i2c_msg msgs[2] = {
-		{
-		 .addr = i2c_addr,
-		 .flags = 0,
-		 .buf = (u8 *) wbuf,
-		 .len = wlen },
-		{
-		 .addr = i2c_addr,
-		 .flags = I2C_M_RD,
-		 .buf = (u8 *) rbuf,
-		 .len = rlen }
-	};
+	if (unlikely(!pdata || !pdata->i2c_client || !pdata->i2c_client->adapter)) {
+		cts_err("%s: invalid pdata or i2c client/adapter", __func__);
+		return -EINVAL;
+	}
+
+	msgs[0].addr = i2c_addr;
+	msgs[0].flags = 0;
+	msgs[0].buf = (u8 *) wbuf;
+	msgs[0].len = wlen;
+
+	msgs[1].addr = i2c_addr;
+	msgs[1].flags = I2C_M_RD;
+	msgs[1].buf = (u8 *) rbuf;
+	msgs[1].len = rlen;
 
 	if (wbuf == NULL || wlen == 0)
 		num_msg = 1;
@@ -610,6 +617,12 @@ int cts_init_platform_data(struct cts_platform_data *pdata,
 
 	cts_info("cts_init_platform_data Init");
 
+#ifdef CONFIG_CTS_I2C_HOST
+	pdata->i2c_client = i2c_client;
+#else
+	pdata->spi_client = spi;
+#endif
+
 #ifdef CONFIG_CTS_OF
 	{
 		struct device *dev;
@@ -628,10 +641,8 @@ int cts_init_platform_data(struct cts_platform_data *pdata,
 #endif /* CONFIG_CTS_OF */
 
 #ifdef CONFIG_CTS_I2C_HOST
-	pdata->i2c_client = i2c_client;
 	pdata->i2c_client->irq = pdata->irq;
 #else
-	pdata->spi_client = spi;
 	pdata->spi_client->irq = pdata->irq;
 #endif /* CONFIG_CTS_I2C_HOST */
 
@@ -732,7 +743,10 @@ int cts_init_platform_data(struct cts_platform_data *pdata,
 int cts_deinit_platform_data(struct cts_platform_data *pdata)
 {
 	cts_info("De-Init platform_data");
-	input_unregister_device(pdata->ts_input_dev);
+	if (pdata && pdata->ts_input_dev) {
+		input_unregister_device(pdata->ts_input_dev);
+		pdata->ts_input_dev = NULL;
+	}
 	return 0;
 }
 

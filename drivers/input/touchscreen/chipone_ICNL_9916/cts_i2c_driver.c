@@ -417,7 +417,11 @@ static int cts_driver_probe(struct spi_device *client)
 	cts_data->device = &client->dev;
 #endif
 
-	cts_init_platform_data(cts_data->pdata, client);
+	ret = cts_init_platform_data(cts_data->pdata, client);
+	if (ret) {
+		cts_err("Init platform data failed %d", ret);
+		goto err_deinit_platform_data;
+	}
 
 	cts_data->cts_dev.pdata = cts_data->pdata;
 	cts_data->pdata->cts_dev = &cts_data->cts_dev;
@@ -932,7 +936,6 @@ static const struct attribute_group *cts_i2c_driver_config_groups[] = {
 static const struct of_device_id cts_i2c_of_match_table[] = {
 	{.compatible = CFG_CTS_OF_DEVICE_ID_NAME, },
 	{.compatible = "mediatek,cap_touch2", },
-	{.compatible = "mediatek,cap_touch3", },
 	{ },
 };
 
@@ -944,7 +947,6 @@ static const struct i2c_device_id cts_device_id_table[] = {
 	{ CFG_CTS_DEVICE_NAME, 0 },
 	{ "chipone-tddi", 0 },
 	{ "cap_touch2", 0 },
-	{ "cap_touch3", 0 },
 	{ }
 };
 #else
