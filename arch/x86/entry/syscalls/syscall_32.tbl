@@ -404,5 +404,5 @@
 436	i386	close_range		sys_close_range
 438	i386	pidfd_getfd		sys_pidfd_getfd			__ia32_sys_pidfd_getfd
 439	i386	faccessat2		sys_faccessat2			__ia32_sys_faccessat2
-440	i386	process_madvise		sys_process_madvise		__ia32_sys_process_madvise
+440	i386	process_madvise		sys_process_madvise		__ia32_compat_sys_process_madvise
 441	i386	epoll_pwait2		sys_epoll_pwait2		__ia32_sys_epoll_pwait2
