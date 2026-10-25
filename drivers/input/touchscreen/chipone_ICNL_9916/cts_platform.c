@@ -596,6 +596,7 @@ static void cts_plat_touch_event_timeout_work(struct work_struct *work)
 
 int cts_plat_spi_setup(struct cts_platform_data *pdata)
 {
+#ifndef CONFIG_CTS_I2C_HOST
 	int ret;
 
 	pdata->spi_client->chip_select = 0;
@@ -605,6 +606,7 @@ int cts_plat_spi_setup(struct cts_platform_data *pdata)
 	ret = spi_setup(pdata->spi_client);
 	if (ret)
 		cts_err("spi_setup err!");
+#endif
 	return 0;
 }
 

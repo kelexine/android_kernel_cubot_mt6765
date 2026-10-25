@@ -910,7 +910,11 @@ static int32_t self_test_proc_open(struct inode *inode, struct file *file)
     cts_info("Open '/proc/"CTS_PROC_ANDROID_TOUCH_DIR"/"OEM_SELFTEST_PROC_FILENAME"'");
 
     if (!oem_data->test_config_from_dt_has_parsed) {
+#ifdef CONFIG_CTS_I2C_HOST
+        parse_selftest_dt(oem_data, cts_data->pdata->i2c_client->dev.of_node);
+#else
         parse_selftest_dt(oem_data, cts_data->pdata->spi_client->dev.of_node);
+#endif
 	    oem_data->test_config_from_dt_has_parsed = true;
     }
 
@@ -1269,7 +1273,11 @@ static ssize_t tp_selftest_proc_write(struct file *file, const char __user *buf,
     }
 	
 	if (!oem_data->tp_selftest_from_dt_has_parsed) {
+#ifdef CONFIG_CTS_I2C_HOST
+		parse_selftest_dt(oem_data, cts_data->pdata->i2c_client->dev.of_node);
+#else
 		parse_selftest_dt(oem_data, cts_data->pdata->spi_client->dev.of_node);
+#endif
 		oem_data->tp_selftest_from_dt_has_parsed = true;
 	}
 

@@ -49,6 +49,7 @@ void dump_spi(const char *prefix, u8 *data, size_t datalen)
 static int cts_tcs_spi_xtrans(const struct cts_device *cts_dev, u8 *tx,
 	size_t txlen, u8 *rx, size_t rxlen)
 {
+#ifndef CONFIG_CTS_I2C_HOST
 	int ret;
 	struct spi_message msg;
 	struct spi_transfer xfer[2];
@@ -109,11 +110,15 @@ static int cts_tcs_spi_xtrans(const struct cts_device *cts_dev, u8 *tx,
 	udelay(100);
 
 	return 0;
+#else
+	return -ENODEV;
+#endif
 }
 
 static int cts_tcs_spi_xtrans_1_cs(const struct cts_device *cts_dev, u8 *tx,
 	size_t txlen, u8 *rx, size_t rxlen)
 {
+#ifndef CONFIG_CTS_I2C_HOST
 	int ret;
 	struct spi_message msg;
 	struct spi_transfer xfer[1];
@@ -142,6 +147,9 @@ static int cts_tcs_spi_xtrans_1_cs(const struct cts_device *cts_dev, u8 *tx,
 	}
 
 	return 0;
+#else
+	return -ENODEV;
+#endif
 }
 
 static int cts_tcs_spi_read_pack(u8 *tx, TcsCmdValue_t *tcv, u16 rdatalen)
@@ -1573,6 +1581,7 @@ int cts_tcs_get_pocket_palm_mode(const struct cts_device *cts_dev, u8 *enabled)
 int cts_tcs_read_sram_normal_mode(const struct cts_device *cts_dev,
 	u32 addr, void *dst, size_t len, int retry, int delay)
 {
+#ifndef CONFIG_CTS_I2C_HOST
 	struct spi_message msg;
 	struct spi_transfer xfer[2];
 	struct chipone_ts_data *cts_data = container_of(cts_dev,
@@ -1698,6 +1707,9 @@ int cts_tcs_read_sram_normal_mode(const struct cts_device *cts_dev,
 	memcpy(dst, rx, len);
 
 	return ret;
+#else
+	return -ENODEV;
+#endif
 }
 
 int cts_tcs_init_int_data(struct cts_device *cts_dev)

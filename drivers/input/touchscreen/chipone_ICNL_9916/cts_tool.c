@@ -100,7 +100,7 @@ static struct cts_tool_cmd cts_tool_cmd;
 static char cts_tool_firmware_filepath[PATH_MAX];
 /* If CFG_CTS_MAX_I2C_XFER_SIZE < 58(PC tool length), this is neccessary */
 #ifdef CONFIG_CTS_I2C_HOST
-/*static u32 cts_tool_direct_access_addr = 0;*/
+static u32 cts_tool_direct_access_addr = 0;
 #endif /* CONFIG_CTS_I2C_HOST */
 
 static int cts_tool_open(struct inode *inode, struct file *file)

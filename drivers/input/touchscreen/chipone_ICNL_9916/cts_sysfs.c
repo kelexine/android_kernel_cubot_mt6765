@@ -2544,6 +2544,7 @@ static DEVICE_ATTR(fw_log_redirect, S_IRUSR | S_IWUSR, fw_log_redirect_show,
 		   fw_log_redirect_store);
 #endif
 
+#ifndef CONFIG_CTS_I2C_HOST
 static ssize_t debug_spi_show(struct device *dev,
 			      struct device_attribute *attr, char *buf)
 {
@@ -2583,6 +2584,7 @@ static ssize_t debug_spi_store(struct device *dev,
 
 static DEVICE_ATTR(debug_spi, S_IRUSR | S_IWUSR, debug_spi_show,
 		   debug_spi_store);
+#endif
 
 #if defined(CFG_CTS_GESTURE) && IS_ENABLED(CONFIG_TOUCHSCREEN_COMMON)
 static ssize_t double_tap_show(struct kobject *kobj,
@@ -3229,7 +3231,9 @@ static struct attribute *cts_dev_misc_atts[] = {
 	&dev_attr_write_reg.attr,
 	&dev_attr_read_hw_reg.attr,
 	&dev_attr_write_hw_reg.attr,
+#ifndef CONFIG_CTS_I2C_HOST
 	&dev_attr_debug_spi.attr,
+#endif
 	&dev_attr_int_data_types.attr,
 	&dev_attr_int_data_method.attr,
 #ifdef CFG_DUMP_INT_DATA
