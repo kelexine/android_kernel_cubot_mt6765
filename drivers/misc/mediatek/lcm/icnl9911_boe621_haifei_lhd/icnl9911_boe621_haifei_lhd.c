@@ -62,19 +62,7 @@ struct LCM_setting_table {
 
 
 
-static void panel2_gpio_set(unsigned int gpio, int value)
-{
-	struct gpio_desc *desc = gpio_to_desc(gpio);
-	if (desc)
-		gpiod_set_raw_value(desc, value);
-}
 
-static void panel2_gpio_set_cansleep(unsigned int gpio, int value)
-{
-	struct gpio_desc *desc = gpio_to_desc(gpio);
-	if (desc)
-		gpiod_set_raw_value_cansleep(desc, value);
-}
 
 /* ------------------------------------------------------------------------
  * MediaTek LCM util glue
@@ -228,6 +216,8 @@ static void push_table(struct LCM_setting_table *table, unsigned int count,
 static void lcm_init_power(void)
 {
 	pr_info("[LCM] icnl9911_boe621: lcm_init_power (enabling bias)\n");
+	SET_RESET_PIN(0);
+	MDELAY(30);
 	display_bias_enable_uv(DSV_BIAS_UV);
 }
 
@@ -240,22 +230,20 @@ static void lcm_suspend_power(void)
 static void lcm_resume_power(void)
 {
 	pr_info("[LCM] icnl9911_boe621: lcm_resume_power (enabling bias)\n");
+	SET_RESET_PIN(0);
+	MDELAY(30);
 	display_bias_enable_uv(DSV_BIAS_UV);
-	MDELAY(20);
+	MDELAY(30);
 }
 
 static void lcm_init(void)
 {
 	pr_info("[LCM] icnl9911_boe621: lcm_init start\n");
-	panel2_gpio_set(GPIO_PANEL2_POWER_EN, 1);
+	SET_RESET_PIN(1);
 	MDELAY(20);
+	SET_RESET_PIN(0);
 	MDELAY(20);
-
-	panel2_gpio_set(GPIO_PANEL2_RESET, 1);
-	MDELAY(20);
-	panel2_gpio_set(GPIO_PANEL2_RESET, 0);
-	MDELAY(20);
-	panel2_gpio_set(GPIO_PANEL2_RESET, 1);
+	SET_RESET_PIN(1);
 	MDELAY(150);
 
 	push_table(lcm_initialization_setting,
@@ -307,15 +295,11 @@ static unsigned int lcm_compare_id(void)
 	unsigned char buffer[4] = { 0 };
 	unsigned int cmd_array[4] = { 0x00023700 };
 
-	panel2_gpio_set_cansleep(GPIO_PANEL2_POWER_EN, 1);
+	SET_RESET_PIN(1);
 	MDELAY(20);
+	SET_RESET_PIN(0);
 	MDELAY(20);
-
-	panel2_gpio_set_cansleep(GPIO_PANEL2_RESET, 1);
-	MDELAY(10);
-	panel2_gpio_set_cansleep(GPIO_PANEL2_RESET, 0);
-	MDELAY(20);
-	panel2_gpio_set_cansleep(GPIO_PANEL2_RESET, 1);
+	SET_RESET_PIN(1);
 	MDELAY(120);
 
 	dsi_set_cmdq(cmd_array, 1, 1);

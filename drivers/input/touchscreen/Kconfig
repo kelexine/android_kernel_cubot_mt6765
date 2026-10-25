@@ -1356,6 +1356,7 @@ config TOUCHSCREEN_MTK_SYNAPTICS_I2C_RMI4
           module will be called synaptics_i2c_rmi4.
 
 source "drivers/input/touchscreen/synaptics_i2c_rmi4/Kconfig"
+source "drivers/input/touchscreen/chipone_ICNL_9916/Kconfig"
 
 config TOUCHSCREEN_MTK_TOUCH
 	string "Touch IC name for Mediatek package"

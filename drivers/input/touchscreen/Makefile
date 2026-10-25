@@ -120,5 +120,6 @@ obj-$(CONFIG_TOUCHPANEL_OPPO) += oppo_touchscreen/
 obj-$(CONFIG_TOUCHPANEL_OPPO) += touch.o
 obj-$(CONFIG_TOUCHSCREEN_MTK_FOCALTECH_FHD)	+= focaltech_fhd_touch/
 obj-$(CONFIG_TOUCHSCREEN_MTK_SYNAPTICS_I2C_RMI4)	+=  synaptics_i2c_rmi4/
+obj-$(CONFIG_TOUCHSCREEN_CHIPONE)		+= chipone_ICNL_9916/
 TOUCH_LISTS := $(subst ",,$(CONFIG_TOUCHSCREEN_MTK_TOUCH))
 obj-y += $(foreach TOUCH,$(TOUCH_LISTS),$(TOUCH)/)
