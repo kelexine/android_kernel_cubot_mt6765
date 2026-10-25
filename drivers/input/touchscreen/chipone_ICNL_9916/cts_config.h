@@ -138,7 +138,7 @@
 #define CONFIG_CTS_EARJACK_DETECT
 #define CONFIG_CTS_CHARGER_DETECT
 /*C3T code for HQ-218218 by jishen at 2022/10/01  start */
-#define CONFIG_CTS_TP_PROXIMITY
+//#define CONFIG_CTS_TP_PROXIMITY
 /*C3T code for HQ-244497 by jishen at 2022/10/01  end */
 #define CONFIG_CTS_TP_INFO
 #define CONFIG_CTS_TP_DATA_DUMP

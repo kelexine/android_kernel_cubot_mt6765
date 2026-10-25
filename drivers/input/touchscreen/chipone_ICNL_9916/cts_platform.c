@@ -393,26 +393,14 @@ int cts_plat_spi_read_delay_idle(struct cts_platform_data *pdata, u8 dev_addr,
 
 	return -EIO;
 }
+#endif
 
 int cts_plat_is_normal_mode(struct cts_platform_data *pdata)
 {
-	struct chipone_ts_data *cts_data;
 	u16 fwid;
 	int ret;
-	/* u8 tx_buf[4] = { 0 }; */
-	/* u32 addr; */
 
 	cts_set_normal_addr(pdata->cts_dev);
-	cts_data =
-	    container_of(pdata->cts_dev, struct chipone_ts_data, cts_dev);
-	/*
-	 * addr = CTS_DEVICE_FW_REG_CHIP_TYPE;
-	 * put_unaligned_be16(addr, tx_buf);
-	 * ret = cts_plat_spi_read(pdata, CTS_DEV_NORMAL_MODE_SPIADDR,
-	 *     tx_buf, 2,
-	 *     &fwid, 2, 3, 10);
-	 * fwid = be16_to_cpu(fwid);
-	 */
 	ret = pdata->cts_dev->ops->get_fw_id(pdata->cts_dev, &fwid);
 
 	if (ret || !cts_is_fwid_valid(fwid))
@@ -420,7 +408,6 @@ int cts_plat_is_normal_mode(struct cts_platform_data *pdata)
 
 	return true;
 }
-#endif
 
 static void cts_plat_handle_irq(struct cts_platform_data *pdata)
 {

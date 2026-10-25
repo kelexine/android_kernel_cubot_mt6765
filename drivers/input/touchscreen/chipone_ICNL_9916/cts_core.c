@@ -10,14 +10,9 @@
 #include "cts_charger_detect.h"
 #include "cts_earjack_detect.h"
 #include "cts_tcs.h"
-/*C3T code for HQ-218218 by jishen at 2022/10/01  start */
-extern int ps_send_touch_event(int32_t data);
-/*C3T code for HQ-218218 by jishen at 2022/10/01  end */
-//static DEFINE_RT_MUTEX(dev_lock);
-/*C3T code for HQ-229322 by jishen at 2022/10/12  start*/
-extern void set_lcd_reset_gpio_keep_high(bool en);
-/*C3T code for HQ-229322 by jishen at 2022/10/12  end*/
 #ifdef CONFIG_CTS_TP_PROXIMITY
+extern int ps_send_touch_event(int32_t data);
+extern void set_lcd_reset_gpio_keep_high(bool en);
 extern struct cts_device *cts_dev;
 
 /* C3T code for HQ-258541 by jishen at 2022/11/2 start */

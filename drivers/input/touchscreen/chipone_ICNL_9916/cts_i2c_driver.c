@@ -12,16 +12,8 @@
 #include "cts_earjack_detect.h"
 #include "cts_oem.h"
 
-/*C3T code for HQ-218218 by jishen at 2022/10/01  start */
-extern int cts_set_prox_en(unsigned int enable);
-extern int tp_select_proximity;
-/*C3T code for HQ-218218 by jishen at 2022/10/01  end */
-
-/*C3T code for HQ-258541 by jishen at 2022/10/25  start */
-extern bool lcd_reset_keep_high;
-/*C3T code for HQ-258541 by jishen at 2022/10/25  end */
-
 #ifdef CONFIG_CTS_TP_PROXIMITY
+extern int cts_set_prox_en(unsigned int enable);
 struct cts_device *cts_dev;
 #endif
 
@@ -44,14 +36,7 @@ static int cts_suspend(struct chipone_ts_data *cts_data)
 	int ret;
 
 	cts_info("Suspend");
-	/*C3T code for HQ-258541 by jishen at 2022/10/25  start */
-     	if(lcd_reset_keep_high){
-	cts_info("skip normal cts_suspend when proximity status = %d",lcd_reset_keep_high);
-	msleep(20);
-	return 0;
-	}
-	/*C3T code for HQ-258541 by jishen at 2022/10/25  end */
-	
+
 	cts_lock_device(&cts_data->cts_dev);
 	ret = cts_suspend_device(&cts_data->cts_dev);
 	cts_unlock_device(&cts_data->cts_dev);
@@ -549,10 +534,6 @@ static int cts_driver_probe(struct spi_device *client)
 		msecs_to_jiffies(15 * 1000));
 
 	INIT_WORK(&cts_data->ts_resume_work, cts_resume_work_func);
-	/*C3T code for HQ-253995 by zhangkexin at 2022/10/08  start */
-        tp_select_proximity = 3;
-        cts_info("we_selected_prox_%d",tp_select_proximity);
-	/*C3T code for HQ-253995 by zhangkexin at 2022/10/08  end */
 	return 0;
 
 err_deinit_oem:
