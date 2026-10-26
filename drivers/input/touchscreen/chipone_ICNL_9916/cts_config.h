@@ -44,7 +44,7 @@
 /* #define CFG_CTS_FIRMWARE_FORCE_UPDATE */
 
 /** Use build in firmware or firmware file in fs*/
-/* #define CFG_CTS_DRIVER_BUILTIN_FIRMWARE */
+#define CFG_CTS_DRIVER_BUILTIN_FIRMWARE
 #define CFG_CTS_FIRMWARE_IN_FS
 #ifdef CFG_CTS_FIRMWARE_IN_FS
 /* Add FW custom process. */
