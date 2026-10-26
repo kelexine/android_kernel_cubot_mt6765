@@ -105,6 +105,20 @@
 #include "tpd.h"
 #define DRIVER_VERSION			"2.0.10.0.200801"
 
+#define K			(1024)
+#define M			(K * K)
+#define ENABLE			1
+#define START			1
+#define ON			1
+#define ILI_WRITE		1
+#define ILI_READ		0
+#define DISABLE			0
+#define END			0
+#define OFF			0
+#define NONE			-1
+#define DO_SPI_RECOVER		-2
+#define DO_I2C_RECOVER		-3
+
 /* Options */
 #define TDDI_INTERFACE			BUS_I2C /* BUS_I2C(0x18) or BUS_SPI(0x1C) */
 #define VDD_VOLTAGE			1800000
@@ -185,19 +199,6 @@ do {									\
 } while (0)
 
 #define ERR_ALLOC_MEM(X)	((IS_ERR(X) || X == NULL) ? 1 : 0)
-#define K			(1024)
-#define M			(K * K)
-#define ENABLE			1
-#define START			1
-#define ON			1
-#define ILI_WRITE		1
-#define ILI_READ		0
-#define DISABLE			0
-#define END			0
-#define OFF			0
-#define NONE			-1
-#define DO_SPI_RECOVER		-2
-#define DO_I2C_RECOVER		-3
 #define SPI_IS_LOCKED		INT_MAX
 
 enum TP_SPI_CLK_LIST {

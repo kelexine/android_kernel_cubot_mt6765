@@ -519,8 +519,10 @@ int ilitek_tddi_sleep_handler(int mode)
 			if (ilitek_tddi_fw_upgrade_handler(NULL) < 0)
 				ipio_err("FW upgrade failed during resume\n");
 		} else {
+#if !TDDI_RST_BIND
 			if (ilitek_tddi_reset_ctrl(idev->reset) < 0)
 				ipio_err("TP Reset failed during resume\n");
+#endif
 			ilitek_tddi_ic_func_ctrl_reset();
 		}
 		idev->tp_suspend = false;
