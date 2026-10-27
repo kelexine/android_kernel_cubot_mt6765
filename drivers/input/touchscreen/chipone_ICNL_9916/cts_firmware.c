@@ -433,8 +433,7 @@ static const struct cts_firmware *cts_request_newer_driver_builtin_firmware(
 				 firmware->name, firmware->hwid, firmware->fwid,
 				 firmware->size, FIRMWARE_VERSION(firmware));
 
-			/* if(FIRMWARE_VERSION(firmware) > device_fw_ver) { */
-			if (1) {
+			if (FIRMWARE_VERSION(firmware) > device_fw_ver) {
 				cts_info("Found newer driver builtin '%s' "
 					 "hwid: %06x fwid: %04x size: %zu ver: %04x > %04x",
 					 firmware->name, firmware->hwid,
@@ -1039,20 +1038,38 @@ int cts_update_firmware(struct cts_device *cts_dev,
 	if (!to_flash || !cts_dev->rtdata.has_flash) {
 		cts_info("Write firmware section to sram size %zu",
 			 firmware_info.firmware_sect_size);
+		ret = cts_sram_writel_retry(cts_dev, 0x00FFFC,
+			firmware_info.firmware_sect_crc, 3, 1);
+		if (ret) {
+			cts_err("Write CRC to 0x00FFFC failed %d", ret);
+			goto out;
+		}
+		ret = cts_sram_writel_retry(cts_dev, 0x00FFF8,
+			firmware_info.firmware_sect_size, 3, 1);
+		if (ret) {
+			cts_err("Write LEN to 0x00FFF8 failed %d", ret);
+			goto out;
+		}
 		ret = cts_sram_writesb_check_crc_retry(cts_dev, 0,
 			firmware_info.firmware_sect, firmware_info.firmware_sect_size,
 			firmware_info.firmware_sect_crc, 3);
-		if (ret)
+		if (ret) {
 			cts_err("Write firmware section to sram failed %d", ret);
+			goto out;
+		}
 #ifdef CFG_CTS_UPDATE_CRCCHECK
-		if (cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9911S ||
+		if (cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9911 ||
+		    cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9911S ||
 		    cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9911C ||
 		    cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9916 ||
 		    cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9916C ||
-		    cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9922)
-			cts_sram_writesb_boot_crc_retry(cts_dev,
+		    cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9922) {
+			ret = cts_sram_writesb_boot_crc_retry(cts_dev,
 				firmware_info.firmware_sect_size,
 				firmware_info.firmware_sect_crc, 3);
+			if (ret)
+				cts_err("Write boot crc failed %d", ret);
+		}
 #endif
 		goto out;
 	}

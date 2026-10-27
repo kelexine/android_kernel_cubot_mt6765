@@ -6,6 +6,9 @@
 #include "cts_firmware.h"
 #include "cts_sysfs.h"
 
+extern void tpd_gpio_as_int(int pin);
+extern void tpd_gpio_output(int pin, int level);
+
 #ifdef CFG_CTS_FW_LOG_REDIRECT
 size_t cts_plat_get_max_fw_log_size(struct cts_platform_data *pdata)
 {
@@ -499,6 +502,12 @@ static int cts_plat_parse_dt(struct cts_platform_data *pdata,
 	if (pdata->irq <= 0) {
 		touch_node = of_find_node_by_name(NULL, "touch");
 		if (touch_node) {
+			u32 ints[2] = { 0, 0 };
+
+			if (of_property_read_u32_array(touch_node, "debounce",
+						       ints, ARRAY_SIZE(ints)) == 0) {
+				gpiod_set_debounce(gpio_to_desc(ints[0]), ints[1]);
+			}
 			pdata->irq = irq_of_parse_and_map(touch_node, 0);
 			cts_info("Found IRQ from touch node: %d", pdata->irq);
 		}
@@ -764,6 +773,8 @@ int cts_plat_request_resource(struct cts_platform_data *pdata)
 				ret);
 			pdata->int_gpio = -1;
 		}
+	} else {
+		tpd_gpio_as_int(1);
 	}
 #ifdef CFG_CTS_HAS_RESET_PIN
 	if (gpio_is_valid(pdata->rst_gpio)) {
@@ -774,6 +785,8 @@ int cts_plat_request_resource(struct cts_platform_data *pdata)
 				ret);
 			pdata->rst_gpio = -1;
 		}
+	} else {
+		tpd_gpio_output(0, 1);
 	}
 #endif /* CFG_CTS_HAS_RESET_PIN */
 
@@ -812,19 +825,26 @@ void cts_plat_free_resource(struct cts_platform_data *pdata)
 
 int cts_plat_request_irq(struct cts_platform_data *pdata)
 {
+	unsigned long irq_flags;
 	int ret;
 
 	cts_info("Request IRQ");
 
+	/* Note: MUST be falling edge if int_mode == 0, rising edge if int_mode == 1 */
+	if (pdata->cts_dev && pdata->cts_dev->fwdata.int_mode)
+		irq_flags = IRQF_ONESHOT | IRQF_TRIGGER_RISING;
+	else
+		irq_flags = IRQF_ONESHOT | IRQF_TRIGGER_FALLING;
+
 #ifdef CONFIG_GENERIC_HARDIRQS
 	ret = request_threaded_irq(pdata->irq, NULL,
 				   cts_plat_irq_handler,
-				   IRQF_TRIGGER_LOW | IRQF_ONESHOT,
+				   irq_flags,
 				   CFG_CTS_DRIVER_NAME, pdata);
 #else /* CONFIG_GENERIC_HARDIRQS */
 	ret = request_irq(pdata->irq,
 			  cts_plat_irq_handler,
-			  IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
+			  irq_flags,
 			  CFG_CTS_DRIVER_NAME, pdata);
 #endif /* CONFIG_GENERIC_HARDIRQS */
 	if (ret) {
@@ -889,13 +909,16 @@ int cts_plat_reset_device(struct cts_platform_data *pdata)
 {
 	cts_info("Reset device");
 
-	if (gpio_is_valid(pdata->rst_gpio)) {
-		gpio_set_value(pdata->rst_gpio, 1);
-		mdelay(1);
+	if (pdata && gpio_is_valid(pdata->rst_gpio)) {
 		gpio_set_value(pdata->rst_gpio, 0);
-		mdelay(10);
+		mdelay(1);
 		gpio_set_value(pdata->rst_gpio, 1);
-		mdelay(40);
+		mdelay(50);
+	} else {
+		tpd_gpio_output(0, 0);
+		mdelay(1);
+		tpd_gpio_output(0, 1);
+		mdelay(50);
 	}
 
 	return 0;
@@ -904,11 +927,13 @@ int cts_plat_reset_device(struct cts_platform_data *pdata)
 int cts_plat_set_reset(struct cts_platform_data *pdata, int val)
 {
 	cts_info("Set Reset to %s", val ? "HIGH" : "LOW");
-	if (gpio_is_valid(pdata->rst_gpio)) {
+	if (pdata && gpio_is_valid(pdata->rst_gpio)) {
 		if (val)
 			gpio_set_value(pdata->rst_gpio, 1);
 		else
 			gpio_set_value(pdata->rst_gpio, 0);
+	} else {
+		tpd_gpio_output(0, val ? 1 : 0);
 	}
 
 	return 0;

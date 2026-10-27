@@ -64,6 +64,22 @@ if grep -q 'saved_command_line' "${drv}"; then bad "legacy cmdline panel parser 
 grep -q 'mtk_lcm_gate_is_active(ILITEK_FOREIGN_PANEL)' "${TS_DIR}/ILITEK_V2/ilitek_plat_mtk.c" \
     && ok "ilitek gate present" || bad "ilitek gate missing"
 
+# Stock ICNL9911C parity checks (Ghidra RE of stock_vmlinux.elf v1.33.0)
+grep -q 'tpd_driver_add(&chipone_tpd_driver)' "${drv}" \
+    && ok "chipone registers with MTK tpd_driver_add" || bad "chipone missing tpd_driver_add"
+grep -q 'ret = cts_start_device(&cts_data->cts_dev);' "${drv}" \
+    && ok "cts_driver_probe starts device synchronously" || bad "cts_driver_probe does not call cts_start_device"
+grep -q 'tpd_gpio_as_int(1)' "${CTS}/cts_platform.c" \
+    && ok "cts_platform requests EINT pinctrl via tpd_gpio_as_int" || bad "cts_platform missing tpd_gpio_as_int"
+grep -q 'tpd_gpio_output(0,' "${CTS}/cts_platform.c" \
+    && ok "cts_platform drives RST pinctrl via tpd_gpio_output" || bad "cts_platform missing tpd_gpio_output"
+grep -q '0x015ff8' "${CTS}/cts_core.c" && grep -q '0x015ffc' "${CTS}/cts_core.c" \
+    && ok "cts_core writes ICNL9911C boot CRC/LEN to 0x015FF8/0x015FFC" || bad "cts_core missing 0x015FF8/0x015FFC boot CRC"
+grep -q 'CTS_CMD_SUSPEND_WITH_GESTURE' "${CTS}/cts_hostcomm.c" \
+    && ok "cts_hostcomm implements set_pwr_mode suspend commands" || bad "cts_hostcomm set_pwr_mode still stubbed"
+grep -q 'find_flash_by_jedec_id' "${CTS}/cts_spi_flash.c" \
+    && ok "cts_spi_flash JEDEC table and probe_flash restored" || bad "cts_spi_flash probe_flash still stubbed"
+
 echo "== 3. kernel object build (optional)"
 # mtkfb.o cannot be built standalone (its include paths come from the full
 # build), so the exported symbol is checked at its definition instead.

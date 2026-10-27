@@ -404,8 +404,8 @@ int cts_hostcomm_is_display_on(const struct cts_device *cts_dev,
 
 int cts_hostcomm_set_pwr_mode(const struct cts_device *cts_dev, u8 pwr_mode)
 {
-	//TODO:
-	return 0;
+	return cts_send_command(cts_dev,
+		(pwr_mode == 3) ? CTS_CMD_SUSPEND_WITH_GESTURE : CTS_CMD_SUSPEND);
 }
 
 int cts_hostcomm_set_display_on(const struct cts_device *cts_dev, u8 display_on)
