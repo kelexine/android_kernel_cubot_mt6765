@@ -30,6 +30,13 @@
 #define CFG_CTS_DEVICE_NAME                 "mtk-tpd"
 #define CFG_CTS_DRIVER_NAME                 "chipone-tddi"
 
+/*
+ * Bind only when the active LCM is a Chipone ICNL9911 panel (see
+ * mtk_lcm_gate.h). Re-uses the CTS_MTK_GET_PANEL hook of the original port.
+ */
+#define CTS_MTK_GET_PANEL
+#define CFG_CTS_PANEL_MATCH                 "icnl9911"
+
 #if CFG_CTS_MAX_I2C_XFER_SIZE < 8
 #error "I2C transfer size should large than 8"
 #endif

@@ -24,9 +24,6 @@ static struct drm_panel *active_panel;
 static int check_dt(struct device_node *np);
 #endif
 bool cts_show_debug_log;
-#ifdef CTS_MTK_GET_PANEL
-static char *active_panel_name;
-#endif
 
 module_param_named(debug_log, cts_show_debug_log, bool, 0660);
 MODULE_PARM_DESC(debug_log, "Show debug log control");
@@ -292,55 +289,25 @@ static int check_default_tp(struct device_node *dt, const char *prop)
 #endif
 
 #ifdef CTS_MTK_GET_PANEL
-char panel_name[50] = { 0 };
+#include "../mtk_lcm_gate.h"
 
+/*
+ * Only bind on units whose active LCM is a Chipone panel. The Cubot P50 is
+ * built with both the ILI9881H (Ilitek) and ICNL9911 (Chipone) LCM drivers and
+ * both touch drivers are built in, so without this the Chipone driver also
+ * probes Ilitek units. Returns 0 to bind, -EPROBE_DEFER while the LCM name is
+ * not published yet, -ENODEV when another panel is fitted.
+ */
 static int cts_get_panel(void)
 {
-	int ret = -1;
+	int ret = mtk_lcm_gate_require(CFG_CTS_PANEL_MATCH);
 
-	cts_info("enter");
-	if (saved_command_line) {
-		char *sub;
-		char key_prefix[] = "mipi_mot_vid_";
-		char ic_prefix[] = "icnl";
-
-		cts_info("saved_command_line is %s", saved_command_line);
-		sub = strstr(saved_command_line, key_prefix);
-		if (sub) {
-			char *d;
-			int n, len, len_max = 50;
-
-			d = strstr(sub, " ");
-			if (d)
-				n = strlen(sub) - strlen(d);
-			else
-				n = strlen(sub);
-
-			if (n > len_max)
-				len = len_max;
-			else
-				len = n;
-
-			strncpy(panel_name, sub, len);
-			active_panel_name = panel_name;
-			if (strstr(active_panel_name, ic_prefix))
-				cts_info("active_panel_name=%s",
-					 active_panel_name);
-			else {
-				cts_info("Not chipone panel!");
-				return ret;
-			}
-
-		} else {
-			cts_info("chipone active panel not found!");
-			return ret;
-		}
-	} else {
-		cts_info("saved_command_line null!");
-		return ret;
-	}
-
-	return 0;
+	if (ret == -EPROBE_DEFER)
+		cts_info("Active LCM name not published yet, deferring probe");
+	else if (ret)
+		cts_info("Active LCM is not '%s', not binding",
+			 CFG_CTS_PANEL_MATCH);
+	return ret;
 }
 #endif
 #ifdef CONFIG_CTS_I2C_HOST
@@ -380,13 +347,17 @@ static int cts_driver_probe(struct spi_device *client)
 	cts_info("Probe i2c client: name='%s' addr=0x%02x flags=0x%02x irq=%d",
 		 client->name, client->addr, client->flags, client->irq);
 
-#if !defined(CONFIG_MTK_PLATFORM)
+	/*
+	 * cts_set_normal_addr() uses the DT node address as the normal-mode
+	 * slave address, and the IC only answers on 0x48 once its firmware runs
+	 * (the boot ROM answers on 0x30). Binding any other node makes every
+	 * transfer after the firmware starts NACK ("I2C addr 0x.. is offline").
+	 */
 	if (client->addr != CTS_DEV_NORMAL_MODE_I2CADDR) {
 		cts_err("Probe i2c addr 0x%02x != driver config addr 0x%02x",
 			client->addr, CTS_DEV_NORMAL_MODE_I2CADDR);
 		return -ENODEV;
-	};
-#endif
+	}
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		cts_err("Check functionality failed");
@@ -935,7 +906,7 @@ static const struct attribute_group *cts_i2c_driver_config_groups[] = {
 #ifdef CONFIG_CTS_OF
 static const struct of_device_id cts_i2c_of_match_table[] = {
 	{.compatible = CFG_CTS_OF_DEVICE_ID_NAME, },
-	{.compatible = "mediatek,cap_touch2", },
+	{.compatible = "mediatek,cap_touch3", },
 	{ },
 };
 
@@ -946,7 +917,7 @@ MODULE_DEVICE_TABLE(of, cts_i2c_of_match_table);
 static const struct i2c_device_id cts_device_id_table[] = {
 	{ CFG_CTS_DEVICE_NAME, 0 },
 	{ "chipone-tddi", 0 },
-	{ "cap_touch2", 0 },
+	{ "cap_touch3", 0 },
 	{ }
 };
 #else
