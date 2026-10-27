@@ -99,7 +99,6 @@ static void inotify_fdinfo(struct seq_file *m, struct fsnotify_mark *mark)
 {
 	struct inotify_inode_mark *inode_mark;
 	struct inode *inode;
-	u32 mask;
 
 	if (mark->connector->type != FSNOTIFY_OBJ_TYPE_INODE)
 		return;

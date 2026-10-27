@@ -78,7 +78,7 @@ static void process_nh_hash_value(struct nhpoly1305_state *state,
 	BUILD_BUG_ON(NH_HASH_BYTES % POLY1305_BLOCK_SIZE != 0);
 
 	poly1305_core_blocks(&state->poly_state, &key->poly_key, state->nh_hash,
-			     NH_HASH_BYTES / POLY1305_BLOCK_SIZE);
+			     NH_HASH_BYTES / POLY1305_BLOCK_SIZE, 1);
 }
 
 /*
@@ -209,7 +209,7 @@ int crypto_nhpoly1305_final_helper(struct shash_desc *desc, u8 *dst, nh_t nh_fn)
 	if (state->nh_remaining)
 		process_nh_hash_value(state, key);
 
-	poly1305_core_emit(&state->poly_state, dst);
+	poly1305_core_emit(&state->poly_state, NULL, dst);
 	return 0;
 }
 EXPORT_SYMBOL(crypto_nhpoly1305_final_helper);
