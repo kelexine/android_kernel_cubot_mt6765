@@ -31,4 +31,10 @@ static inline int rtnh_attrlen(const struct rtnexthop *rtnh)
 	return rtnh->rtnh_len - NLA_ALIGN(sizeof(*rtnh));
 }
 
+struct fib_nh_common;
+int fib_nexthop_info(struct sk_buff *skb, const struct fib_nh_common *nhc,
+		     u8 *flags, bool skip_oif);
+int fib_add_nexthop(struct sk_buff *skb, const struct fib_nh_common *nhc,
+		    int nh_weight);
+
 #endif

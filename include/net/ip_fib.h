@@ -486,4 +486,10 @@ u32 ip_mtu_from_fib_result(struct fib_result *res, __be32 daddr);
 int ip_valid_fib_dump_req(struct net *net, const struct nlmsghdr *nlh,
 			  struct fib_dump_filter *filter,
 			  struct netlink_ext_ack *extack);
+
+int fib_nexthop_info(struct sk_buff *skb, const struct fib_nh_common *nhc,
+		     u8 *flags, bool skip_oif);
+int fib_add_nexthop(struct sk_buff *skb, const struct fib_nh_common *nhc,
+		    int nh_weight);
+
 #endif  /* _NET_FIB_H */
