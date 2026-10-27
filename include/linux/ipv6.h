@@ -3,6 +3,7 @@
 #define _IPV6_H
 
 #include <uapi/linux/ipv6.h>
+#include <uapi/linux/icmpv6.h>
 #include <linux/android_kabi.h>
 
 #define ipv6_optlen(p)  (((p)->hdrlen+1) << 3)
