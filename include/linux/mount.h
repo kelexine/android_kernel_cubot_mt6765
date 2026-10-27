@@ -112,4 +112,6 @@ extern unsigned int sysctl_mount_max;
 
 extern bool path_is_mountpoint(const struct path *path);
 
+int ksys_umount(char __user *name, int flags);
+
 #endif /* _LINUX_MOUNT_H */
