@@ -569,7 +569,7 @@ static int mt6357_led_set_pwm_dim_freq(struct mt_led_info *info, int freq)
 	//PWM Frequency
 	switch (led->id) {
 	case MT6357_ISINK1:
-		value = value << ISINK_DIM1_FSEL_SHIFT;
+		value = (unsigned int)freq << ISINK_DIM1_FSEL_SHIFT;
 		ret = regmap_update_bits(regmap, ISINK_DIM1_FSEL,
 			ISINK_DIM1_FSEL_MASK << ISINK_DIM1_FSEL_SHIFT, value);
 		pr_info("set ISINK_DIM1_FSEL[0x%0x]: 0x%0x", ISINK_DIM1_FSEL, value);
