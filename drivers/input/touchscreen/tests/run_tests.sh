@@ -60,6 +60,10 @@ grep -q '^#define CFG_CTS_PANEL_MATCH.*"icnl9911"' "${cfg}" && ok "panel match i
 grep -q 'ret = cts_get_panel();' "${drv}" && ok "gate called from probe" || bad "gate not called from probe"
 if grep -q 'saved_command_line' "${drv}"; then bad "legacy cmdline panel parser still present"; else ok "legacy cmdline panel parser removed"; fi
 
+# Ilitek must step aside on the Chipone panel.
+grep -q 'mtk_lcm_gate_is_active(ILITEK_FOREIGN_PANEL)' "${TS_DIR}/ILITEK_V2/ilitek_plat_mtk.c" \
+    && ok "ilitek gate present" || bad "ilitek gate missing"
+
 echo "== 3. kernel object build (optional)"
 # mtkfb.o cannot be built standalone (its include paths come from the full
 # build), so the exported symbol is checked at its definition instead.
@@ -71,7 +75,8 @@ fi
 if [[ -n "${KERNEL_O:-}" ]]; then
     ksrc="$(cd "${TS_DIR}/../../.." && pwd)"
     cc="${CROSS_COMPILE:-aarch64-linux-gnu-}"
-    for obj in drivers/input/touchscreen/chipone_ICNL_9916/cts_i2c_driver.o; do
+    for obj in drivers/input/touchscreen/chipone_ICNL_9916/cts_i2c_driver.o \
+               drivers/input/touchscreen/ILITEK_V2/ilitek_plat_mtk.o; do
         # Force a recompile so a stale object cannot mask a regression.
         touch "${ksrc}/${obj%.o}.c"
         if (cd "${ksrc}" && make -s ARCH=arm64 CROSS_COMPILE="${cc}" HOSTCC=gcc \

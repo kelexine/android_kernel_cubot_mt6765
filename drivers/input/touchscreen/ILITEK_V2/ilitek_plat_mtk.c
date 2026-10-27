@@ -21,10 +21,13 @@
  */
 
 #include "ilitek.h"
+#include "../mtk_lcm_gate.h"
 
 #define DTS_INT_GPIO	"touch,irq-gpio"
 #define DTS_RESET_GPIO	"touch,reset-gpio"
 #define DTS_OF_NAME	"ilitek"
+/* LCM family fitted on the Chipone SKU; no Ilitek IC exists there */
+#define ILITEK_FOREIGN_PANEL	"icnl9911"
 #define MTK_RST_GPIO	GTP_RST_PORT
 #define MTK_INT_GPIO	GTP_INT_PORT
 
@@ -454,6 +457,11 @@ static struct ilitek_hwif_info hwif = {
 static int tpd_local_init(void)
 {
 	ipio_info("TPD init device driver\n");
+
+	if (mtk_lcm_gate_is_active(ILITEK_FOREIGN_PANEL)) {
+		ipio_info("Chipone panel is active, no Ilitek IC on this unit\n");
+		return -ENODEV;
+	}
 
 	if (ilitek_tddi_dev_init(&hwif) < 0) {
 		ipio_err("Failed to register i2c/spi bus driver\n");
