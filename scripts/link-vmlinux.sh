@@ -35,6 +35,10 @@
 # Error out on error
 set -e
 
+if [ -z "${CC}" ] || ! [ -x "$(command -v "${CC}")" ]; then
+	CC="clang"
+fi
+
 # Nice output in kbuild format
 # Will be supressed by "make -s"
 info()
