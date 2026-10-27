@@ -176,11 +176,12 @@ extern int cts_spi_send_recv(struct cts_platform_data *pdata, size_t len,
 			     u8 *tx_buffer, u8 *rx_buffer);
 #endif /* CONFIG_CTS_I2C_HOST */
 
+extern int cts_plat_is_normal_mode(struct cts_platform_data *pdata);
+
 #ifdef CONFIG_CTS_I2C_HOST
 extern int cts_init_platform_data(struct cts_platform_data *pdata,
 				  struct i2c_client *i2c_client);
 #else
-extern int cts_plat_is_normal_mode(struct cts_platform_data *pdata);
 extern int cts_init_platform_data(struct cts_platform_data *pdata,
 				  struct spi_device *spi);
 #endif
