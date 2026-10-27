@@ -289,6 +289,7 @@ void scm_detach_fds_compat(struct msghdr *kmsg, struct scm_cookie *scm)
 			break;
 		}
 		/* Bump the usage count and install the file. */
+		__receive_sock(fp[i]);
 		fd_install(new_fd, get_file(fp[i]));
 	}
 
@@ -313,6 +314,39 @@ void scm_detach_fds_compat(struct msghdr *kmsg, struct scm_cookie *scm)
 	 * usage counts incremented, so we just free the list.
 	 */
 	__scm_destroy(scm);
+}
+
+/* allocate a 64-bit sock_fprog on the user stack for duration of syscall. */
+struct sock_fprog __user *get_compat_bpf_fprog(char __user *optval)
+{
+	struct compat_sock_fprog __user *fprog32 = (struct compat_sock_fprog __user *)optval;
+	struct sock_fprog __user *kfprog = compat_alloc_user_space(sizeof(struct sock_fprog));
+	struct compat_sock_fprog f32;
+	struct sock_fprog f;
+
+	if (copy_from_user(&f32, fprog32, sizeof(*fprog32)))
+		return NULL;
+	memset(&f, 0, sizeof(f));
+	f.len = f32.len;
+	f.filter = compat_ptr(f32.filter);
+	if (copy_to_user(kfprog, &f, sizeof(struct sock_fprog)))
+		return NULL;
+
+	return kfprog;
+}
+EXPORT_SYMBOL_GPL(get_compat_bpf_fprog);
+
+static int do_set_attach_filter(struct socket *sock, int level, int optname,
+				char __user *optval, unsigned int optlen)
+{
+	struct sock_fprog __user *kfprog;
+
+	kfprog = get_compat_bpf_fprog(optval);
+	if (!kfprog)
+		return -EFAULT;
+
+	return sock_setsockopt(sock, level, optname, (char __user *)kfprog,
+			      sizeof(struct sock_fprog));
 }
 
 static int do_set_sock_timeout(struct socket *sock, int level,
@@ -340,6 +374,10 @@ static int do_set_sock_timeout(struct socket *sock, int level,
 static int compat_sock_setsockopt(struct socket *sock, int level, int optname,
 				char __user *optval, unsigned int optlen)
 {
+	if (optname == SO_ATTACH_FILTER ||
+	    optname == SO_ATTACH_REUSEPORT_CBPF)
+		return do_set_attach_filter(sock, level, optname,
+					    optval, optlen);
 	if (!COMPAT_USE_64BIT_TIME &&
 	    (optname == SO_RCVTIMEO || optname == SO_SNDTIMEO))
 		return do_set_sock_timeout(sock, level, optname, optval, optlen);
