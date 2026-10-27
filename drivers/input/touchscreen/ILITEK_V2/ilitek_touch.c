@@ -357,6 +357,7 @@ int ilitek_tddi_proximity_near(int mode)
 int ilitek_tddi_proximity_far(int mode)
 {
 	int ret = 0;
+	u8 cmd[2] = {0};
 
 	if (!idev->prox_near) {
 		ipio_info("No proximity near event, break\n");
@@ -376,6 +377,14 @@ int ilitek_tddi_proximity_far(int mode)
 		 * If the power of VSP and VSN keeps alive in the event of proximity near,
 		 * TP can be just recovered by switching gesture mode to get back.
 		 */
+		cmd[0] = 0xF6;
+		cmd[1] = 0x0A;
+		ipio_info("write prepare gesture command 0xF6 0x0A\n");
+		ret = idev->write(cmd, 2);
+		if (ret < 0) {
+			ipio_info("write prepare gesture command error\n");
+			break;
+		}
 		ret = ilitek_tddi_switch_tp_mode(P5_X_FW_GESTURE_MODE);
 		if (ret < 0)
 			ipio_err("Switch to gesture mode failed during proximity far\n");

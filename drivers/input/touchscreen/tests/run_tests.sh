@@ -60,9 +60,13 @@ grep -q '^#define CFG_CTS_PANEL_MATCH.*"icnl9911"' "${cfg}" && ok "panel match i
 grep -q 'ret = cts_get_panel();' "${drv}" && ok "gate called from probe" || bad "gate not called from probe"
 if grep -q 'saved_command_line' "${drv}"; then bad "legacy cmdline panel parser still present"; else ok "legacy cmdline panel parser removed"; fi
 
-# Ilitek must step aside on the Chipone panel.
-grep -q 'mtk_lcm_gate_is_active(ILITEK_FOREIGN_PANEL)' "${TS_DIR}/ILITEK_V2/ilitek_plat_mtk.c" \
-    && ok "ilitek gate present" || bad "ilitek gate missing"
+# Ilitek stock parity checks (TDDI_RST_BIND disabled, ilitek_wrapper wired, len returned).
+grep -q '^#define TDDI_RST_BIND.*DISABLE' "${TS_DIR}/ILITEK_V2/ilitek.h" \
+    && ok "ilitek TDDI_RST_BIND is DISABLE (stock parity)" || bad "ilitek TDDI_RST_BIND is not DISABLE"
+grep -q 'idev->wrapper = ilitek_wrapper;' "${TS_DIR}/ILITEK_V2/ilitek_i2c.c" \
+    && ok "ilitek_i2c uses stock ilitek_wrapper" || bad "ilitek_i2c not using ilitek_wrapper"
+grep -q 'return len;' "${TS_DIR}/ILITEK_V2/ilitek_i2c.c" \
+    && ok "ilitek_i2c_read returns byte length" || bad "ilitek_i2c_read does not return byte length"
 
 # Stock ICNL9911C parity checks (Ghidra RE of stock_vmlinux.elf v1.33.0)
 grep -q 'tpd_driver_add(&chipone_tpd_driver)' "${drv}" \
@@ -95,18 +99,24 @@ if [[ -n "${KERNEL_O:-}" ]]; then
                drivers/input/touchscreen/ILITEK_V2/ilitek_plat_mtk.o; do
         # Force a recompile so a stale object cannot mask a regression.
         touch "${ksrc}/${obj%.o}.c"
-        if (cd "${ksrc}" && make -s ARCH=arm64 CROSS_COMPILE="${cc}" HOSTCC=gcc \
-                O="${KERNEL_O}" "${obj}" >"${WORK}/mk.log" 2>&1); then
+        if (cd "${ksrc}" && make -s ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=clang \
+                LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy \
+                OBJDUMP=llvm-objdump STRIP=llvm-strip \
+                CLANG_TRIPLE="${cc}" CROSS_COMPILE="${cc}" HOSTCC=gcc \
+                TARGET_PRODUCT=marlon MTK_PLATFORM=mt6765 \
+                O="${KERNEL_O}" "${obj}" </dev/null >"${WORK}/mk.log" 2>&1); then
             if grep -E 'warning:|error:' "${WORK}/mk.log" | grep -v 'scripts/' | grep -q .; then
                 grep -E 'warning:|error:' "${WORK}/mk.log" | grep -v 'scripts/' >&2
                 bad "${obj##*/} builds with warnings"
             else
                 ok "${obj##*/} builds clean"
             fi
-            if "${cc}nm" "${KERNEL_O}/${obj}" | grep -q ' U mtkfb_lcm_name'; then
-                ok "${obj##*/} links the LCM name gate"
-            else
-                bad "${obj##*/} does not reference mtkfb_lcm_name"
+            if [[ "${obj}" == *cts_i2c_driver.o ]]; then
+                if llvm-nm "${KERNEL_O}/${obj}" | grep -q ' U mtkfb_lcm_name'; then
+                    ok "${obj##*/} links the LCM name gate"
+                else
+                    bad "${obj##*/} does not reference mtkfb_lcm_name"
+                fi
             fi
         else
             tail -5 "${WORK}/mk.log" >&2; bad "${obj##*/} failed to build"

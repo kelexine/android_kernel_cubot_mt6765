@@ -21,13 +21,10 @@
  */
 
 #include "ilitek.h"
-#include "../mtk_lcm_gate.h"
 
 #define DTS_INT_GPIO	"touch,irq-gpio"
 #define DTS_RESET_GPIO	"touch,reset-gpio"
 #define DTS_OF_NAME	"ilitek"
-/* LCM family fitted on the Chipone SKU; no Ilitek IC exists there */
-#define ILITEK_FOREIGN_PANEL	"icnl9911"
 #define MTK_RST_GPIO	GTP_RST_PORT
 #define MTK_INT_GPIO	GTP_INT_PORT
 
@@ -35,11 +32,6 @@ extern struct tpd_device *tpd;
 
 void ilitek_plat_tp_reset(void)
 {
-#if TDDI_RST_BIND
-	ipio_info("TDDI_RST_BIND enabled: skipping board HW RST pin toggle\n");
-	return;
-#endif
-
 	ipio_info("edge delay = %d\n", idev->rst_edge_delay);
 
 	/* Need accurate power sequence, do not change it to msleep */
@@ -362,8 +354,6 @@ int ilitek_plat_irq_register(int type)
 	if (ret != 0)
 		ipio_err("Failed to register irq handler, irq = %d, ret = %d\n", idev->irq_num, ret);
 
-	atomic_set(&idev->irq_stat, ENABLE);
-
 	return ret;
 }
 
@@ -412,6 +402,8 @@ static int ilitek_plat_probe(void)
 
 	if (ilitek_tddi_init() < 0) {
 		ipio_err("platform probe failed\n");
+		gpio_free(idev->tp_int);
+		gpio_free(idev->tp_rst);
 		return -ENODEV;
 	}
 	ilitek_plat_irq_register(idev->irq_tirgger_type);
@@ -457,11 +449,6 @@ static struct ilitek_hwif_info hwif = {
 static int tpd_local_init(void)
 {
 	ipio_info("TPD init device driver\n");
-
-	if (mtk_lcm_gate_is_active(ILITEK_FOREIGN_PANEL)) {
-		ipio_info("Chipone panel is active, no Ilitek IC on this unit\n");
-		return -ENODEV;
-	}
 
 	if (ilitek_tddi_dev_init(&hwif) < 0) {
 		ipio_err("Failed to register i2c/spi bus driver\n");

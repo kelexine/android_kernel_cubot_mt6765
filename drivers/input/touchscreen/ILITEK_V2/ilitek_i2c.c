@@ -41,13 +41,15 @@ int ilitek_i2c_read(void *buf, int len)
 
 	ret = i2c_transfer(idev->i2c->adapter, &msg, 1);
 	if (ret != 1) {
+		if (atomic_read(&idev->tp_reset) == 1)
+			return 0;
 		if (atomic_read(&idev->ice_stat) != 1)
 			ipio_err("i2c read error, ret = %d (addr=0x%02x, len=%d)\n",
 				 ret, idev->i2c->addr, len);
 		return (ret < 0) ? ret : -EIO;
 	}
 
-	return 0;
+	return len;
 }
 
 int ilitek_i2c_write(void *buf, int len)
@@ -68,16 +70,20 @@ int ilitek_i2c_write(void *buf, int len)
 		return -EINVAL;
 	}
 
-	/* Stock behavior: if core_ver >= 1.4.1 and command packet (*buf == 0xF1), append checksum */
-	if (idev->chip && (idev->chip->core_ver >= CORE_VER_1410) && (tx_buf[0] == 0xF1) &&
-	    (atomic_read(&idev->ice_stat) != 1)) {
+	/* Stock behavior: if core_ver >= 1.4.1, MP test mode, and CDC init packet (0xF1), append checksum */
+	if (idev->chip && (idev->chip->core_ver >= CORE_VER_1410) &&
+	    (tx_buf[0] == P5_X_SET_CDC_INIT) &&
+	    (idev->actual_tp_mode == P5_X_FW_TEST_MODE)) {
 		alloc_buf = kmalloc(len + 1, GFP_KERNEL);
-		if (alloc_buf) {
-			memcpy(alloc_buf, tx_buf, len);
-			alloc_buf[len] = ilitek_calc_packet_checksum(tx_buf, len);
-			tx_buf = alloc_buf;
-			write_len = len + 1;
+		if (!alloc_buf) {
+			ipio_err("Failed to allocate mp cdc checksum buffer\n");
+			return -ENOMEM;
 		}
+		memcpy(alloc_buf, tx_buf, len);
+		alloc_buf[len] = ilitek_calc_packet_checksum(tx_buf, len);
+		tx_buf = alloc_buf;
+		write_len = len + 1;
+		ilitek_dump_data(tx_buf, 8, write_len, 0, "mp cdc cmd with checksum");
 	}
 
 	msg.addr = idev->i2c->addr;
@@ -91,6 +97,8 @@ int ilitek_i2c_write(void *buf, int len)
 		kfree(alloc_buf);
 
 	if (ret != 1) {
+		if (atomic_read(&idev->tp_reset) == 1)
+			return 0;
 		if (atomic_read(&idev->ice_stat) != 1)
 			ipio_err("i2c write error, ret = %d (addr=0x%02x, len=%d)\n",
 				 ret, idev->i2c->addr, len);
@@ -100,28 +108,10 @@ int ilitek_i2c_write(void *buf, int len)
 	return 0;
 }
 
-static int ilitek_i2c_wrapper(u8 *txbuf, u32 n_tx, u8 *rxbuf, u32 n_rx, bool is_ice, bool is_dma)
-{
-	int ret = 0;
-
-	if (n_tx > 0) {
-		ret = ilitek_i2c_write(txbuf, n_tx);
-		if (ret < 0)
-			return ret;
-	}
-
-	if (n_rx > 0) {
-		ret = ilitek_i2c_read(rxbuf, n_rx);
-		if (ret < 0)
-			return ret;
-	}
-
-	return 0;
-}
-
 static int ilitek_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct touch_bus_info *info;
+	int ret;
 
 	if (tpd_load_status || idev != NULL) {
 		ipio_info("Touch driver already initialized, skipping secondary node (addr 0x%02x)\n", client->addr);
@@ -169,7 +159,7 @@ static int ilitek_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 
 	idev->write = ilitek_i2c_write;
 	idev->read = ilitek_i2c_read;
-	idev->wrapper = ilitek_i2c_wrapper;
+	idev->wrapper = ilitek_wrapper;
 
 	idev->actual_tp_mode = P5_X_FW_AP_MODE;
 	idev->tp_data_len = P5_X_DEMO_MODE_PACKET_LEN;
@@ -218,7 +208,15 @@ static int ilitek_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 
 	i2c_set_clientdata(client, idev);
 
-	return info->hwif->plat_probe();
+	ret = info->hwif->plat_probe();
+	if (ret < 0) {
+		kfree(idev->gcoord);
+		kfree(idev->tr_buf);
+		i2c_set_clientdata(client, NULL);
+		idev = NULL;
+	}
+
+	return ret;
 }
 
 static int ilitek_i2c_remove(struct i2c_client *client)

@@ -519,10 +519,8 @@ int ilitek_tddi_sleep_handler(int mode)
 			if (ilitek_tddi_fw_upgrade_handler(NULL) < 0)
 				ipio_err("FW upgrade failed during resume\n");
 		} else {
-#if !TDDI_RST_BIND
 			if (ilitek_tddi_reset_ctrl(idev->reset) < 0)
 				ipio_err("TP Reset failed during resume\n");
-#endif
 			ilitek_tddi_ic_func_ctrl_reset();
 		}
 		idev->tp_suspend = false;
@@ -657,8 +655,15 @@ int ilitek_set_tp_data_len(int format, bool send, u8* data)
 		return -1;
 	}
 
-	if (ctrl == DATA_FORMAT_DEBUG_LITE_CMD) {
+	if (ctrl == DATA_FORMAT_DEBUG_LITE_CMD)
 		len = P5_X_DEBUG_LITE_LENGTH;
+
+	idev->tp_data_format = format;
+	idev->tp_data_len = len;
+	ipio_debug("TP mode = %d, format = %d, len = %d\n",
+		tp_mode, idev->tp_data_format, idev->tp_data_len);
+
+	if (ctrl == DATA_FORMAT_DEBUG_LITE_CMD) {
 		cmd[0] = P5_X_MODE_CONTROL;
 		cmd[1] = ctrl;
 		cmd[2] = debug_ctrl;
@@ -681,20 +686,15 @@ int ilitek_set_tp_data_len(int format, bool send, u8* data)
 			ilitek_tddi_switch_tp_mode(P5_X_FW_AP_MODE);
 		}
 	} else if (tp_mode == P5_X_FW_GESTURE_MODE) {
-		/*set gesture symbol*/
-		ilitek_set_gesture_symbol();
-
 		if (send) {
+			/*set gesture symbol*/
+			ilitek_set_gesture_symbol();
+
 			ret = ilitek_tddi_ic_func_ctrl("lpwg", ctrl, NULL, 0);
 			if (ret < 0)
 				ipio_err("write gesture mode failed\n");
 		}
 	}
-
-	idev->tp_data_format = format;
-	idev->tp_data_len = len;
-	ipio_debug("TP mode = %d, format = %d, len = %d\n",
-		tp_mode, idev->tp_data_format, idev->tp_data_len);
 
 	return ret;
 }
@@ -717,6 +717,7 @@ int ilitek_tddi_report_handler(void)
 
 	if (idev->irq_after_recovery) {
 		ipio_info("ignore int triggered by recovery\n");
+		idev->irq_after_recovery = false;
 		return -EINVAL;
 	}
 
@@ -1060,6 +1061,14 @@ int ilitek_tddi_init(void)
 	 */
 	if (ilitek_tddi_ic_dummy_check(OFF) < 0) {
 		ipio_err("Not found ilitek chip\n");
+		if (esd_wq != NULL) {
+			destroy_workqueue(esd_wq);
+			esd_wq = NULL;
+		}
+		if (bat_wq != NULL) {
+			destroy_workqueue(bat_wq);
+			bat_wq = NULL;
+		}
 		return -ENODEV;
 	}
 
@@ -1104,7 +1113,7 @@ int ilitek_tddi_init(void)
 	idev->boot = true;
 #endif
 
-	idev->ws = wakeup_source_register(NULL, "ili_wakelock");
+	idev->ws = wakeup_source_register(idev->dev, "ili_wakelock");
 	if (!idev->ws)
 		ipio_err("wakeup source request failed\n");
 
