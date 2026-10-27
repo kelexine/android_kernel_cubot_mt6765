@@ -294,7 +294,6 @@ void msdc_sd_power(struct msdc_host *host, u32 on)
 {
 #if !defined(CONFIG_MTK_MSDC_BRING_UP_BYPASS)
 	u32 card_on = on;
-	int project_id = 0;
 
 	switch (host->id) {
 	case 1:
