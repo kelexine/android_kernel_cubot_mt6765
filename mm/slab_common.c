@@ -130,6 +130,7 @@ int __kmem_cache_alloc_bulk(struct kmem_cache *s, gfp_t flags, size_t nr,
 #ifdef CONFIG_MEMCG_KMEM
 
 LIST_HEAD(slab_root_caches);
+static DEFINE_SPINLOCK(memcg_kmem_wq_lock);
 
 void slab_init_memcg_params(struct kmem_cache *s)
 {
@@ -717,14 +718,22 @@ void slab_deactivate_memcg_cache_rcu_sched(struct kmem_cache *s,
 	    WARN_ON_ONCE(s->memcg_params.deact_fn))
 		return;
 
+	/*
+	 * memcg_kmem_wq_lock is used to synchronize memcg_params.dying
+	 * flag and make sure that no new kmem_cache deactivation tasks
+	 * are queued (see flush_memcg_workqueue() ).
+	 */
+	spin_lock_irq(&memcg_kmem_wq_lock);
 	if (s->memcg_params.root_cache->memcg_params.dying)
-		return;
+		goto unlock;
 
 	/* pin memcg so that @s doesn't get destroyed in the middle */
 	css_get(&s->memcg_params.memcg->css);
 
 	s->memcg_params.deact_fn = deact_fn;
 	call_rcu_sched(&s->memcg_params.deact_rcu_head, kmemcg_deactivate_rcufn);
+unlock:
+	spin_unlock_irq(&memcg_kmem_wq_lock);
 }
 
 void memcg_deactivate_kmem_caches(struct mem_cgroup *memcg)
@@ -830,6 +839,13 @@ static int shutdown_memcg_caches(struct kmem_cache *s)
 	if (!list_empty(&s->memcg_params.children))
 		return -EBUSY;
 	return 0;
+}
+
+static void memcg_set_kmem_cache_dying(struct kmem_cache *s)
+{
+	spin_lock_irq(&memcg_kmem_wq_lock);
+	s->memcg_params.dying = true;
+	spin_unlock_irq(&memcg_kmem_wq_lock);
 }
 
 static void flush_memcg_workqueue(struct kmem_cache *s)
@@ -1061,16 +1077,6 @@ struct kmem_cache *kmalloc_slab(size_t size, gfp_t flags)
 		}
 		index = fls(size - 1);
 	}
-
-#if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_KMALLOC_DEBUG)
-	if (unlikely(kmalloc_debug_enable)) {
-		struct kmem_cache *s;
-
-		s = (struct kmem_cache *)atomic64_read(&kmalloc_debug_caches[kmalloc_type(flags)][index]);
-		if (unlikely(s))
-			return s;
-	}
-#endif
 	return kmalloc_caches[kmalloc_type(flags)][index];
 }
 
@@ -1172,15 +1178,9 @@ new_kmalloc_cache(int idx, int type, slab_flags_t flags)
 		name = kmalloc_info[idx].name;
 	}
 
-#if defined(CONFIG_OPLUS_FEATURE_SLABTRACE_DEBUG)
-	kmalloc_caches[type][idx] = create_kmalloc_cache(name,
-					kmalloc_info[idx].size, flags|SLAB_STORE_USER, 0,
-					kmalloc_info[idx].size);
-#else
 	kmalloc_caches[type][idx] = create_kmalloc_cache(name,
 					kmalloc_info[idx].size, flags, 0,
 					kmalloc_info[idx].size);
-#endif
 }
 
 /*
