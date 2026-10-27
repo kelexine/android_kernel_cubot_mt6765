@@ -1287,7 +1287,6 @@ static __always_inline int validate_range(struct mm_struct *mm,
 		return -EINVAL;
 	if (*start >= task_size)
 		return -EINVAL;
-		return -EINVAL;
 	if (len > task_size - *start)
 		return -EINVAL;
 	return 0;
@@ -1851,7 +1850,7 @@ static int userfaultfd_continue(struct userfaultfd_ctx *ctx, unsigned long arg)
 			   sizeof(uffdio_continue) - (sizeof(__s64))))
 		goto out;
 
-	ret = validate_range(ctx->mm, uffdio_continue.range.start,
+	ret = validate_range(ctx->mm, &uffdio_continue.range.start,
 			     uffdio_continue.range.len);
 	if (ret)
 		goto out;
