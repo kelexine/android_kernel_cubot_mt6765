@@ -491,5 +491,6 @@ int fib_nexthop_info(struct sk_buff *skb, const struct fib_nh_common *nhc,
 		     u8 *flags, bool skip_oif);
 int fib_add_nexthop(struct sk_buff *skb, const struct fib_nh_common *nhc,
 		    int nh_weight);
+bool fib_info_nh_uses_dev(struct fib_info *fi, const struct net_device *dev);
 
 #endif  /* _NET_FIB_H */
