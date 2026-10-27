@@ -68,7 +68,7 @@ config VGACON_SOFT_SCROLLBACK_PERSISTENT_ENABLE_BY_DEFAULT
 	  So if you use a RAM-constrained system, say N here.
 
 config MDA_CONSOLE
-	depends on !M68K && !PARISC && ISA
+	depends on VGA_CONSOLE && ISA
 	tristate "MDA text console (dual-headed)"
 	---help---
 	  Say Y here if you have an old MDA or monochrome Hercules graphics

@@ -684,7 +684,7 @@ static int __init ima_calc_boot_aggregate_tfm(char *digest,
 		rc = crypto_shash_update(shash, pcr_i, TPM_DIGEST_SIZE);
 	}
 	if (!rc)
-		crypto_shash_final(shash, digest);
+		rc = crypto_shash_final(shash, digest);
 	return rc;
 }
 

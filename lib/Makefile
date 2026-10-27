@@ -290,7 +290,6 @@ obj-$(CONFIG_GENERIC_LIB_LSHRDI3) += lshrdi3.o
 obj-$(CONFIG_GENERIC_LIB_MULDI3) += muldi3.o
 obj-$(CONFIG_GENERIC_LIB_CMPDI2) += cmpdi2.o
 obj-$(CONFIG_GENERIC_LIB_UCMPDI2) += ucmpdi2.o
-
-# ifdef OPLUS_FEATURE_MEMLEAK_DETECT
 obj-$(CONFIG_VMALLOC_DEBUG) += memleak_debug_stackdepot.o
-# endif
+
+obj-y += crypto/

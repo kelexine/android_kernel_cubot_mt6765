@@ -325,6 +325,7 @@ static int proc_tgid_net_getattr(const struct path *path, struct kstat *stat,
 const struct inode_operations proc_net_inode_operations = {
 	.lookup		= proc_tgid_net_lookup,
 	.getattr	= proc_tgid_net_getattr,
+	.setattr        = proc_setattr,
 };
 
 static int proc_tgid_net_readdir(struct file *file, struct dir_context *ctx)
@@ -376,6 +377,9 @@ static __net_init int proc_net_ns_init(struct net *net)
 		gid = netd->gid;
 
 	proc_set_user(netd, uid, gid);
+
+	/* Seed dentry revalidation for /proc/${pid}/net */
+	pde_force_lookup(netd);
 
 	err = -EEXIST;
 	net_statd = proc_net_mkdir(net, "stat", netd);

@@ -244,13 +244,13 @@ int security_binder_transaction(const struct cred *from,
 }
 
 int security_binder_transfer_binder(const struct cred *from,
-				const struct cred *to)
+				    const struct cred *to)
 {
 	return call_int_hook(binder_transfer_binder, 0, from, to);
 }
 
 int security_binder_transfer_file(const struct cred *from,
-				const struct cred *to, struct file *file)
+				  const struct cred *to, struct file *file)
 {
 	return call_int_hook(binder_transfer_file, 0, from, to, file);
 }
@@ -603,7 +603,6 @@ int security_path_chown(const struct path *path, kuid_t uid, kgid_t gid)
 		return 0;
 	return call_int_hook(path_chown, 0, path, uid, gid);
 }
-EXPORT_SYMBOL_GPL(security_path_chown);
 
 int security_path_chroot(const struct path *path)
 {
@@ -891,6 +890,23 @@ int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	return call_int_hook(file_ioctl, 0, file, cmd, arg);
 }
 
+/**
+ * security_file_ioctl_compat() - Check if an ioctl is allowed in compat mode
+ * @file: associated file
+ * @cmd: ioctl cmd
+ * @arg: ioctl arguments
+ *
+ * Compat version of security_file_ioctl() that correctly handles 32-bit
+ * processes running on 64-bit kernels.
+ *
+ * Return: Returns 0 if permission is granted.
+ */
+int security_file_ioctl_compat(struct file *file, unsigned int cmd,
+			       unsigned long arg)
+{
+	return call_int_hook(file_ioctl_compat, 0, file, cmd, arg);
+}
+
 static inline unsigned long mmap_prot(struct file *file, unsigned long prot)
 {
 	/*
@@ -927,19 +943,19 @@ static inline unsigned long mmap_prot(struct file *file, unsigned long prot)
 int security_mmap_file(struct file *file, unsigned long prot,
 			unsigned long flags)
 {
+	unsigned long prot_adj = mmap_prot(file, prot);
 	int ret;
-	ret = call_int_hook(mmap_file, 0, file, prot,
-					mmap_prot(file, prot), flags);
+
+	ret = call_int_hook(mmap_file, 0, file, prot, prot_adj, flags);
 	if (ret)
 		return ret;
-	return ima_file_mmap(file, prot);
+	return ima_file_mmap(file, prot, prot_adj, flags);
 }
 
 int security_mmap_addr(unsigned long addr)
 {
 	return call_int_hook(mmap_addr, 0, addr);
 }
-EXPORT_SYMBOL_GPL(security_mmap_addr);
 
 int security_file_mprotect(struct vm_area_struct *vma, unsigned long reqprot,
 			    unsigned long prot)
@@ -1802,30 +1818,3 @@ void security_bpf_prog_free(struct bpf_prog_aux *aux)
 	call_void_hook(bpf_prog_free_security, aux);
 }
 #endif /* CONFIG_BPF_SYSCALL */
-
-#ifdef CONFIG_PERF_EVENTS
-int security_perf_event_open(struct perf_event_attr *attr, int type)
-{
-	return call_int_hook(perf_event_open, 0, attr, type);
-}
-
-int security_perf_event_alloc(struct perf_event *event)
-{
-	return call_int_hook(perf_event_alloc, 0, event);
-}
-
-void security_perf_event_free(struct perf_event *event)
-{
-	call_void_hook(perf_event_free, event);
-}
-
-int security_perf_event_read(struct perf_event *event)
-{
-	return call_int_hook(perf_event_read, 0, event);
-}
-
-int security_perf_event_write(struct perf_event *event)
-{
-	return call_int_hook(perf_event_write, 0, event);
-}
-#endif /* CONFIG_PERF_EVENTS */

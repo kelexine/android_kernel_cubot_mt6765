@@ -155,7 +155,7 @@ struct request_sock;
 
 #ifdef CONFIG_MMU
 extern int mmap_min_addr_handler(struct ctl_table *table, int write,
-				 void *buffer, size_t *lenp, loff_t *ppos);
+				 void __user *buffer, size_t *lenp, loff_t *ppos);
 #endif
 
 /* security_inode_init_security callback function to write xattrs */
@@ -322,6 +322,8 @@ int security_file_permission(struct file *file, int mask);
 int security_file_alloc(struct file *file);
 void security_file_free(struct file *file);
 int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+int security_file_ioctl_compat(struct file *file, unsigned int cmd,
+			       unsigned long arg);
 int security_mmap_file(struct file *file, unsigned long prot,
 			unsigned long flags);
 int security_mmap_addr(unsigned long addr);
@@ -448,13 +450,13 @@ static inline int security_binder_set_context_mgr(const struct cred *mgr)
 }
 
 static inline int security_binder_transaction(const struct cred *from,
-						const struct cred *to)
+					      const struct cred *to)
 {
 	return 0;
 }
 
 static inline int security_binder_transfer_binder(const struct cred *from,
-						const struct cred *to)
+						  const struct cred *to)
 {
 	return 0;
 }
@@ -787,7 +789,7 @@ static inline int security_inode_killpriv(struct dentry *dentry)
 
 static inline int security_inode_getsecurity(struct inode *inode, const char *name, void **buffer, bool alloc)
 {
-	return -EOPNOTSUPP;
+	return cap_inode_getsecurity(inode, name, buffer, alloc);
 }
 
 static inline int security_inode_setsecurity(struct inode *inode, const char *name, const void *value, size_t size, int flags)
@@ -830,6 +832,13 @@ static inline void security_file_free(struct file *file)
 
 static inline int security_file_ioctl(struct file *file, unsigned int cmd,
 				      unsigned long arg)
+{
+	return 0;
+}
+
+static inline int security_file_ioctl_compat(struct file *file,
+					     unsigned int cmd,
+					     unsigned long arg)
 {
 	return 0;
 }
@@ -1843,53 +1852,5 @@ static inline void free_secdata(void *secdata)
 { }
 #endif /* CONFIG_SECURITY */
 
-#ifdef CONFIG_OPLUS_SECURE_GUARD
-#ifdef CONFIG_SECURITY
-extern int get_current_security_context(char **context, u32 *context_len);
-#else
-static inline int get_current_security_context(char **context, u32 *context_len)
-{
-	return -EOPNOTSUPP;
-}
-#endif
-#endif /* CONFIG_OPLUS_SECURE_GUARD */
-
-#ifdef CONFIG_PERF_EVENTS
-struct perf_event_attr;
-struct perf_event;
-
-#ifdef CONFIG_SECURITY
-extern int security_perf_event_open(struct perf_event_attr *attr, int type);
-extern int security_perf_event_alloc(struct perf_event *event);
-extern void security_perf_event_free(struct perf_event *event);
-extern int security_perf_event_read(struct perf_event *event);
-extern int security_perf_event_write(struct perf_event *event);
-#else
-static inline int security_perf_event_open(struct perf_event_attr *attr,
-					   int type)
-{
-	return 0;
-}
-
-static inline int security_perf_event_alloc(struct perf_event *event)
-{
-	return 0;
-}
-
-static inline void security_perf_event_free(struct perf_event *event)
-{
-}
-
-static inline int security_perf_event_read(struct perf_event *event)
-{
-	return 0;
-}
-
-static inline int security_perf_event_write(struct perf_event *event)
-{
-	return 0;
-}
-#endif /* CONFIG_SECURITY */
-#endif /* CONFIG_PERF_EVENTS */
-
 #endif /* ! __LINUX_SECURITY_H */
+
