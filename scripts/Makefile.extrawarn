@@ -77,6 +77,7 @@ KBUILD_CFLAGS += $(call cc-disable-warning, unaligned-access)
 KBUILD_CFLAGS += $(call cc-disable-warning, cast-function-type-strict)
 KBUILD_CFLAGS += -Wno-enum-compare-conditional
 KBUILD_CFLAGS += -Wno-enum-enum-conversion
+KBUILD_CFLAGS += $(call cc-disable-warning, enum-compare)
 KBUILD_CFLAGS += -Wno-address-of-packed-member
 KBUILD_CFLAGS += $(call cc-disable-warning, single-bit-bitfield-constant-conversion)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-variable)
