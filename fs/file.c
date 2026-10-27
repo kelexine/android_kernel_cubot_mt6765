@@ -928,6 +928,7 @@ struct file *fget_task(struct task_struct *task, unsigned int fd)
 
 	return file;
 }
+EXPORT_SYMBOL(fget_task);
 
 struct file *task_lookup_next_fd_rcu(struct task_struct *task, unsigned int *ret_fd)
 {
