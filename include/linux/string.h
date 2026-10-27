@@ -32,7 +32,9 @@ size_t strlcpy(char *, const char *, size_t);
 ssize_t strscpy(char *, const char *, size_t);
 #endif
 /* Wraps calls to strscpy()/memset(), no arch specific code required */
+#ifndef MYSU_VERSION
 ssize_t strscpy_pad(char *dest, const char *src, size_t count);
+#endif
 #ifndef __HAVE_ARCH_STRCAT
 extern char * strcat(char *, const char *);
 #endif

@@ -246,7 +246,6 @@ int DW9718TAF_Release(struct inode *a_pstInode, struct file *a_pstFile)
 		char puSendCmd[2] = {0x00, 0x01};
 		unsigned long af_step = 25;
 
-		#ifdef OPLUS_FEATURE_CAMERA_COMMON
 		if (g_u4CurrPosition > 0 && g_u4CurrPosition <= 1023) {
 			while (g_u4CurrPosition > 150) {
 				if (g_u4CurrPosition > 400)
@@ -265,7 +264,6 @@ int DW9718TAF_Release(struct inode *a_pstInode, struct file *a_pstFile)
 					break;
 			}
 		}
-		#endif
 
 		LOG_INF("apply\n");
 

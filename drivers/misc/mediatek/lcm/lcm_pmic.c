@@ -50,6 +50,8 @@ int display_bias_regulator_init(void)
 }
 EXPORT_SYMBOL(display_bias_regulator_init);
 
+int display_bias_enable_uv(unsigned int voltage_uv);
+
 int display_bias_enable(void)
 {
 	/* Pin both DSV rails to exactly 5.4V matching stock MT6765 baseline */
@@ -133,6 +135,8 @@ int display_bias_regulator_init(void)
 	return 0;
 }
 EXPORT_SYMBOL(display_bias_regulator_init);
+
+int display_bias_enable_uv(unsigned int voltage_uv);
 
 int display_bias_enable(void)
 {
