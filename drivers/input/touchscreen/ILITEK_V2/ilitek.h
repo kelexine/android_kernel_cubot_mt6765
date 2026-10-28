@@ -683,25 +683,25 @@ struct gesture_symbol {
 #define P5_X_CORE_VER_FOUR_LENGTH			6
 #define P5_X_EDGE_PALM_PARA_LENGTH			31
 
-#define DOUBLE_TAP                                   	( OFF )//BIT0
-#define ALPHABET_LINE_2_TOP                          	( OFF )//BIT1
-#define ALPHABET_LINE_2_BOTTOM                   	( OFF )//BIT2
-#define ALPHABET_LINE_2_LEFT                         	( OFF )//BIT3
-#define ALPHABET_LINE_2_RIGHT                        	( OFF )//BIT4
-#define ALPHABET_M					( OFF )//BIT5
-#define ALPHABET_W					( OFF )//BIT6
-#define ALPHABET_C					( OFF )//BIT7
-#define ALPHABET_E					( OFF )//BIT8
-#define ALPHABET_V					( OFF )//BIT9
-#define ALPHABET_O					( OFF )//BIT10
-#define ALPHABET_S					( OFF )//BIT11
-#define ALPHABET_Z					( OFF )//BIT12
-#define ALPHABET_V_DOWN					( OFF )//BIT13
-#define ALPHABET_V_LEFT					( OFF )//BIT14
-#define ALPHABET_V_RIGHT				( OFF )//BIT15
-#define ALPHABET_TWO_LINE_2_BOTTOM			( OFF )//BIT16
-#define ALPHABET_F					( OFF )//BIT17
-#define ALPHABET_AT					( OFF )//BIT18
+#define DOUBLE_TAP                                   	( ON )//BIT0
+#define ALPHABET_LINE_2_TOP                          	( ON )//BIT1
+#define ALPHABET_LINE_2_BOTTOM                   	( ON )//BIT2
+#define ALPHABET_LINE_2_LEFT                         	( ON )//BIT3
+#define ALPHABET_LINE_2_RIGHT                        	( ON )//BIT4
+#define ALPHABET_M					( ON )//BIT5
+#define ALPHABET_W					( ON )//BIT6
+#define ALPHABET_C					( ON )//BIT7
+#define ALPHABET_E					( ON )//BIT8
+#define ALPHABET_V					( ON )//BIT9
+#define ALPHABET_O					( ON )//BIT10
+#define ALPHABET_S					( ON )//BIT11
+#define ALPHABET_Z					( ON )//BIT12
+#define ALPHABET_V_DOWN					( ON )//BIT13
+#define ALPHABET_V_LEFT					( ON )//BIT14
+#define ALPHABET_V_RIGHT				( ON )//BIT15
+#define ALPHABET_TWO_LINE_2_BOTTOM			( ON )//BIT16
+#define ALPHABET_F					( ON )//BIT17
+#define ALPHABET_AT					( ON )//BIT18
 
 /* Protocol */
 #define PROTOCOL_VER_500				0x050000
