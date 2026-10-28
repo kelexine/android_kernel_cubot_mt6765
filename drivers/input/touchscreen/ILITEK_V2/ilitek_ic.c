@@ -142,10 +142,15 @@ int ilitek_i2c_spi_ice_wrapper(u8 *txbuf, u32 wlen, u8 *rxbuf, u32 rlen, bool sl
 	switch (operate) {
 	case RW_SYNC:
 	case W_ONLY:
+		/*
+		 * pll_clk_wakeup_func is only provided by the SPI interface;
+		 * the I2C interface leaves it NULL, so it must be checked.
+		 */
 #if (PLL_CLK_WAKEUP_TP_RESUME == ENABLE)
-		if(idev->pll_clk_wakeup == true) {
+		if (idev->pll_clk_wakeup == true && idev->pll_clk_wakeup_func) {
 #else
-		if ((idev->pll_clk_wakeup == true) && (idev->actual_tp_mode == P5_X_FW_GESTURE_MODE)) {
+		if ((idev->pll_clk_wakeup == true) && idev->pll_clk_wakeup_func &&
+		    (idev->actual_tp_mode == P5_X_FW_GESTURE_MODE)) {
 #endif
 			ret = idev->pll_clk_wakeup_func(txbuf[0]);
 			if (ret < 0)
