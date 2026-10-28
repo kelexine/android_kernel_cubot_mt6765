@@ -471,36 +471,50 @@ static int tpd_fb_notifier_callback(
 	TPD_DEBUG("%s\n", __func__);
 
 	evdata = data;
-	/* If we aren't interested in this event, skip it immediately ... */
-	if (event != FB_EVENT_BLANK)
+	if (!evdata || !evdata->data)
 		return 0;
 
 	blank = *(int *)evdata->data;
-	TPD_DMESG("fb_notify(blank=%d)\n", blank);
-	switch (blank) {
-	case FB_BLANK_UNBLANK:
-		TPD_DMESG("LCD ON Notify\n");
-		if (g_tpd_drv && tpd_suspend_flag) {
-			err = queue_work(touch_resume_workqueue,
-						&touch_resume_work);
-			if (!err) {
-				TPD_DMESG("start resume_workqueue failed\n");
-				return err;
+	TPD_DMESG("fb_notify(event=%lu, blank=%d)\n", event, blank);
+
+	if (event == FB_EARLY_EVENT_BLANK) {
+		if (blank == FB_BLANK_POWERDOWN) {
+			TPD_DMESG("LCD EARLY OFF Notify\n");
+			if (g_tpd_drv && !tpd_suspend_flag) {
+				err = cancel_work_sync(&touch_resume_work);
+				if (!err)
+					TPD_DMESG("cancel resume_workqueue failed\n");
+				g_tpd_drv->suspend(NULL);
+				tpd_suspend_flag = 1;
 			}
 		}
-		break;
-	case FB_BLANK_POWERDOWN:
-		TPD_DMESG("LCD OFF Notify\n");
-		if (g_tpd_drv && !tpd_suspend_flag) {
-			err = cancel_work_sync(&touch_resume_work);
-			if (!err)
-				TPD_DMESG("cancel resume_workqueue failed\n");
-			g_tpd_drv->suspend(NULL);
+	} else if (event == FB_EVENT_BLANK) {
+		switch (blank) {
+		case FB_BLANK_UNBLANK:
+			TPD_DMESG("LCD ON Notify\n");
+			if (g_tpd_drv && tpd_suspend_flag) {
+				err = queue_work(touch_resume_workqueue,
+							&touch_resume_work);
+				if (!err) {
+					TPD_DMESG("start resume_workqueue failed\n");
+					return err;
+				}
+			}
+			break;
+		case FB_BLANK_POWERDOWN:
+			/* Fallback in case FB_EARLY_EVENT_BLANK was not received */
+			if (g_tpd_drv && !tpd_suspend_flag) {
+				TPD_DMESG("LCD OFF Notify (fallback)\n");
+				err = cancel_work_sync(&touch_resume_work);
+				if (!err)
+					TPD_DMESG("cancel resume_workqueue failed\n");
+				g_tpd_drv->suspend(NULL);
+				tpd_suspend_flag = 1;
+			}
+			break;
+		default:
+			break;
 		}
-		tpd_suspend_flag = 1;
-		break;
-	default:
-		break;
 	}
 	return 0;
 }

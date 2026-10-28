@@ -461,6 +461,8 @@ int ilitek_tddi_sleep_handler(int mode)
 	else
 		sense_stop = true;
 
+	tp_gesture = idev->gesture;
+
 	switch (mode) {
 	case TP_SUSPEND:
 		ipio_info("TP suspend start\n");
@@ -1111,6 +1113,7 @@ int ilitek_tddi_init(void)
 	ilitek_tddi_wq_ctrl(WQ_ESD, ENABLE);
 	ilitek_tddi_wq_ctrl(WQ_BAT, ENABLE);
 	idev->boot = true;
+	tp_gesture = idev->gesture;
 #endif
 
 	idev->ws = wakeup_source_register(idev->dev, "ili_wakelock");

@@ -1445,8 +1445,14 @@ int disp_lcm_suspend(struct disp_lcm_handle *plcm)
 			return -1;
 		}
 
-		if (lcm_drv->suspend_power)
-			lcm_drv->suspend_power();
+		if (lcm_drv->suspend_power) {
+			if (tp_gesture) {
+				pr_info("[DISP_LCM] tp_gesture enabled (%d), skipping suspend_power to keep touch bias alive\n",
+					tp_gesture);
+			} else {
+				lcm_drv->suspend_power();
+			}
+		}
 		return 0;
 	}
 	pr_err("[DISP_LCM] disp_lcm_suspend: lcm_drv is null\n");
