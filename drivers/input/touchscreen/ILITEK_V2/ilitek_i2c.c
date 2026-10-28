@@ -184,7 +184,7 @@ static int ilitek_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	idev->wait_int_timeout = AP_INT_TIMEOUT;
 
 #if ENABLE_GESTURE
-	idev->gesture = ENABLE;
+	idev->gesture = DISABLE;
 	idev->ges_sym.double_tap = DOUBLE_TAP;
 	idev->ges_sym.alphabet_line_2_top = ALPHABET_LINE_2_TOP;
 	idev->ges_sym.alphabet_line_2_bottom = ALPHABET_LINE_2_BOTTOM;

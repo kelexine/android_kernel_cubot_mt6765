@@ -1551,6 +1551,7 @@ static ssize_t ilitek_node_ioctl_write(struct file *filp, const char *buff, size
 		ilitek_tddi_wq_ctrl(WQ_BAT, DISABLE);
 	} else if (strncmp(cmd, "gesture", strlen(cmd)) == 0) {
 		idev->gesture = !idev->gesture;
+		tp_gesture = idev->gesture;
 		ipio_info("gesture = %d\n", idev->gesture);
 	} else if (strncmp(cmd, "esdgesture", strlen(cmd)) == 0) {
 		if (ilitek_tddi_gesture_recovery() < 0) {
@@ -2497,6 +2498,15 @@ static int netlink_init(void)
 	return ret;
 }
 
+static inline bool ilitek_any_gesture_enabled(void)
+{
+	u8 *ptr;
+	if (!idev)
+		return false;
+	ptr = (u8 *)&idev->ges_sym;
+	return (ptr[0] | ptr[1] | (ptr[2] & 0x07)) != 0;
+}
+
 #define DEFINE_GESTURE_PROC_SYSFS(name, field) \
 static ssize_t proc_##name##_read(struct file *file, char __user *buff, size_t count, loff_t *ppos) \
 { \
@@ -2520,8 +2530,9 @@ static ssize_t proc_##name##_write(struct file *file, const char __user *buff, s
 	if (kstrtoint(strstrip(str), 10, &enable)) \
 		return -EINVAL; \
 	idev->ges_sym.field = enable ? 1 : 0; \
-	if (enable) idev->gesture = ENABLE; \
-	ipio_info(#name " set to: %d\n", idev->ges_sym.field); \
+	idev->gesture = ilitek_any_gesture_enabled() ? ENABLE : DISABLE; \
+	tp_gesture = idev->gesture; \
+	ipio_info(#name " set to: %d (gesture overall: %d)\n", idev->ges_sym.field, idev->gesture); \
 	return count; \
 } \
 static const struct file_operations proc_##name##_fops = { \
@@ -2543,8 +2554,9 @@ static ssize_t name##_store(struct kobject *kobj, struct kobj_attribute *attr, c
 	if (kstrtoint(strstrip((char *)buf), 10, &enable)) \
 		return -EINVAL; \
 	idev->ges_sym.field = enable ? 1 : 0; \
-	if (enable) idev->gesture = ENABLE; \
-	ipio_info(#name " sysfs set to: %d\n", idev->ges_sym.field); \
+	idev->gesture = ilitek_any_gesture_enabled() ? ENABLE : DISABLE; \
+	tp_gesture = idev->gesture; \
+	ipio_info(#name " sysfs set to: %d (gesture overall: %d)\n", idev->ges_sym.field, idev->gesture); \
 	return count; \
 } \
 static struct kobj_attribute name##_attr = \

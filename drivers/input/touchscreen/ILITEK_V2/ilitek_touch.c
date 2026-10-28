@@ -1094,12 +1094,10 @@ void ilitek_tddi_report_gesture_mode(u8 *buf, int len)
 	case GESTURE_DOUBLECLICK:
 		ipio_info("Double Click key event\n");
 		/*
-		 * Report KEY_WAKEUP so Android's PhoneWindowManager wakes
-		 * the interactive power state from deep sleep reliably.
-		 * Also emit KEY_GESTURE_POWER (KEY_POWER) for compatibility
-		 * with older frameworks expecting power-key-from-touch.
+		 * Report KEY_GESTURE_POWER (KEY_POWER) on double click matching stock
+		 * firmware disassembly. Avoid emitting KEY_WAKEUP simultaneously to prevent
+		 * power state toggle race in Android PhoneWindowManager.
 		 */
-		ilitek_report_gesture_key(input, KEY_WAKEUP);
 		ilitek_report_gesture_key(input, KEY_GESTURE_POWER);
 		gc->type  = GESTURE_DOUBLECLICK;
 		gc->clockwise = 1;
