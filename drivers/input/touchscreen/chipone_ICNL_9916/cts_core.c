@@ -688,38 +688,49 @@ int cts_sram_writesb_boot_crc_retry(const struct cts_device *cts_dev,
 	int ret = 0, retries;
 	u32 addr[3];
 
-	if (cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9911S
+	if (cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9911
+	    || cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9911S
 	    || cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9911C) {
+		ret = cts_sram_writel_retry(cts_dev, 0x00FFFC, crc, retry, 1);
+		if (ret) {
+			cts_err("Write CRC to 0x00FFFC failed %d", ret);
+			return ret;
+		}
+		ret = cts_sram_writel_retry(cts_dev, 0x00FFF8, len, retry, 1);
+		if (ret) {
+			cts_err("Write LEN to 0x00FFF8 failed %d", ret);
+			return ret;
+		}
 		addr[0] = 0x015ff0;
-		addr[1] = 0x08fffc;
-		addr[2] = 0x08fff8;
-	}
-
-	if (cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9916
+		addr[1] = 0x015ff8;
+		addr[2] = 0x015ffc;
+	} else if (cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9916
 		|| cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9916C
 		|| cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9922) {
 		addr[0] = 0x01fff0;
 		addr[1] = 0x01fff8;
 		addr[2] = 0x01fffc;
+	} else {
+		return 0;
 	}
 
 	retries = 0;
 	do {
-		ret = cts_dev_writel(cts_dev, addr[0], 0xCC33555A, 3, 1);
+		ret = cts_hw_reg_writel_retry(cts_dev, addr[0], 0xCC33555A, 3, 1);
 		if (ret != 0) {
-			cts_err("SRAM writesb failed %d", ret);
+			cts_err("Write VALID flag to 0x%06x failed %d", addr[0], ret);
 			continue;
 		}
 
-		ret = cts_dev_writel(cts_dev, addr[1], crc, 3, 1);
+		ret = cts_hw_reg_writel_retry(cts_dev, addr[1], crc, 3, 1);
 		if (ret != 0) {
-			cts_err("SRAM writesb failed %d", ret);
+			cts_err("Write CRC to 0x%06x failed %d", addr[1], ret);
 			continue;
 		}
 
-		ret = cts_dev_writel(cts_dev, addr[2], len, 3, 1);
+		ret = cts_hw_reg_writel_retry(cts_dev, addr[2], len, 3, 1);
 		if (ret != 0) {
-			cts_err("SRAM writesb failed %d", ret);
+			cts_err("Write LEN to 0x%06x failed %d", addr[2], ret);
 			continue;
 		}
 
@@ -831,27 +842,32 @@ int cts_sram_writesb_check_crc_retry(const struct cts_device *cts_dev,
 
 		retries++;
 
-		ret = cts_sram_writesb(cts_dev, 0, src, len);
+		ret = cts_sram_writesb(cts_dev, addr, src, len);
 		if (ret != 0) {
 			cts_err("SRAM writesb failed %d", ret);
 			continue;
 		}
 
-		fw_crc = cts_crc32(src, len);
-		cts_info("fw crc: 0x%04x", fw_crc);
-		memcpy(tdata, magic_num, 8);
-		memcpy(tdata + 8, &fw_crc, 4);
-		memcpy(tdata + 12, &len, 4);
+		if (cts_dev->hwdata &&
+		    (cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9916 ||
+		     cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9916C ||
+		     cts_dev->hwdata->hwid == CTS_DEV_HWID_ICNL9922)) {
+			fw_crc = cts_crc32(src, len);
+			cts_info("fw crc: 0x%04x", fw_crc);
+			memcpy(tdata, magic_num, 8);
+			memcpy(tdata + 8, &fw_crc, 4);
+			memcpy(tdata + 12, &len, 4);
 
-		ret =
-		    cts_hw_reg_writesb_retry(cts_dev, 0x01FFF0, tdata,
-					     sizeof(tdata), 3, 1);
-		if (ret != 0) {
-			cts_err("cts_hw_reg_writesb_retry %d", ret);
-			continue;
+			ret =
+			    cts_hw_reg_writesb_retry(cts_dev, 0x01FFF0, tdata,
+						     sizeof(tdata), 3, 1);
+			if (ret != 0) {
+				cts_err("cts_hw_reg_writesb_retry %d", ret);
+				continue;
+			}
 		}
 
-		ret = cts_calc_sram_crc(cts_dev, 0, len, &crc_sram);
+		ret = cts_calc_sram_crc(cts_dev, addr, len, &crc_sram);
 		if (ret != 0) {
 			cts_err("Get CRC for sram writesb failed %d retries %d",
 				ret, retries);
@@ -1215,22 +1231,22 @@ static int icnl9916_set_access_ddi_reg(struct cts_device *cts_dev, bool enable)
 
 const static struct cts_sfctrl icnl9911_sfctrl = {
 	.reg_base = 0x34000,
-	.xchg_sram_base = (80 - 1) * 1024,
-	.xchg_sram_size = 1024,	/* For non firmware programming */
+	.xchg_sram_base = 80 * 1024,
+	.xchg_sram_size = 16 * 1024,	/* For non firmware programming */
 	.ops = &cts_sfctrlv2_ops
 };
 
 const static struct cts_sfctrl icnl9911s_sfctrl = {
 	.reg_base = 0x34000,
-	.xchg_sram_base = (64 - 1) * 1024,
-	.xchg_sram_size = 1024,	/* For non firmware programming */
+	.xchg_sram_base = 64 * 1024,
+	.xchg_sram_size = 16 * 1024,	/* For non firmware programming */
 	.ops = &cts_sfctrlv2_ops
 };
 
 const static struct cts_sfctrl icnl9911c_sfctrl = {
 	.reg_base = 0x34000,
-	.xchg_sram_base = (64 - 1) * 1024,
-	.xchg_sram_size = 1024,	/* For non firmware programming */
+	.xchg_sram_base = 64 * 1024,
+	.xchg_sram_size = 16 * 1024,	/* For non firmware programming */
 	.ops = &cts_sfctrlv2_ops
 };
 
@@ -2576,37 +2592,40 @@ int cts_enter_normal_mode(struct cts_device *cts_dev)
 		cts_set_normal_addr(cts_dev);
 #ifdef CONFIG_CTS_I2C_HOST
 		if (cts_plat_is_i2c_online
-		    (cts_dev->pdata, cts_dev->rtdata.slave_addr))
+		    (cts_dev->pdata, cts_dev->rtdata.slave_addr)) {
 #else
-		if (cts_plat_is_normal_mode(cts_dev->pdata))
+		if (cts_plat_is_normal_mode(cts_dev->pdata)) {
 #endif
-		ret = cts_get_dev_boot_mode(cts_dev, &boot_mode);
-		if (ret)
-			cts_err("Get BOOT_MODE failed %d", ret);
-		if (boot_mode != CTS_DEV_BOOT_MODE_SRAM)
-			cts_err("Curr boot mode %u(%s) != SRAM_BOOT",
-				boot_mode, cts_dev_boot_mode2str(boot_mode));
-		else
-			break;
-
-		ret = cts_dev->ops->get_fw_id(cts_dev, &fwid);
-		if (ret)
-			cts_err("Get firmware id failed %d, retries %d", ret,
-				retries);
-		else {
-			if (fwid == CTS_DEV_FWID_ICNL9916
-				|| fwid == CTS_DEV_FWID_ICNL9916C
-				|| fwid == CTS_DEV_FWID_ICNL9911
-				|| fwid == CTS_DEV_FWID_ICNL9911S
-				|| fwid == CTS_DEV_FWID_ICNL9911C
-				|| fwid == CTS_DEV_FWID_ICNL9922)
-			{
-				cts_info("Get firmware id successful 0x%02x",
-					 fwid);
+			ret = cts_get_dev_boot_mode(cts_dev, &boot_mode);
+			if (ret) {
+				cts_err("Get BOOT_MODE failed %d", ret);
+			} else if (boot_mode == CTS_DEV_BOOT_MODE_FLASH ||
+				   boot_mode == CTS_DEV_BOOT_MODE_SRAM) {
 				break;
+			} else {
+				cts_err("Curr boot mode %u(%s) != FLASH_BOOT/SRAM_BOOT",
+					boot_mode, cts_dev_boot_mode2str(boot_mode));
+			}
+
+			ret = cts_dev->ops->get_fw_id(cts_dev, &fwid);
+			if (ret)
+				cts_err("Get firmware id failed %d, retries %d", ret,
+					retries);
+			else {
+				if (fwid == CTS_DEV_FWID_ICNL9916
+					|| fwid == CTS_DEV_FWID_ICNL9916C
+					|| fwid == CTS_DEV_FWID_ICNL9911
+					|| fwid == CTS_DEV_FWID_ICNL9911S
+					|| fwid == CTS_DEV_FWID_ICNL9911C
+					|| fwid == CTS_DEV_FWID_ICNL9922)
+				{
+					cts_info("Get firmware id successful 0x%02x",
+						 fwid);
+					break;
+				}
 			}
 		}
-		cts_reset_device(cts_dev);
+		cts_plat_reset_device(cts_dev->pdata);
 	}
 	if (retries >= 0) {
 		ret = cts_init_fwdata(cts_dev);
@@ -2915,7 +2934,7 @@ int cts_probe_device(struct cts_device *cts_dev)
 	u16 fwid = CTS_DEV_FWID_INVALID;
 	u32 hwid = CTS_DEV_HWID_INVALID;
 	u16 device_fw_ver = 0;
-	//const struct cts_firmware *firmware;
+	const struct cts_firmware *firmware;
 
 	cts_info("Probe device");
 
@@ -2931,51 +2950,25 @@ int cts_probe_device(struct cts_device *cts_dev)
 		goto alloc_rx_exit;
 	}
 
-	cts_dev->ops = &tcs_ops;
+	cts_dev->ops = &hostcomm_ops;
 
-read_hwid:
-/** - Try to read hardware id,
- *it will enter program mode as normal
- */
-	ret = cts_get_hwid(cts_dev, &hwid);
-	if (ret || hwid == CTS_DEV_HWID_INVALID) {
-		retries++;
-
-		cts_err("Get hardware id failed %d retries %d", ret, retries);
-
-		if (retries < 3) {
-			cts_reset_device(cts_dev);
-			goto read_hwid;
-		} else
-			return -ENODEV;
-	}
-
-	if (hwid == CTS_DEV_HWID_ICNL9916
-			|| hwid == CTS_DEV_HWID_ICNL9916C
-			|| hwid == CTS_DEV_HWID_ICNL9922)
-		cts_dev->ops = &tcs_ops;
-	else if ((hwid == CTS_DEV_HWID_ICNL9911C) ||
-		   (hwid == CTS_DEV_HWID_ICNL9911S) ||
-		   (hwid == CTS_DEV_HWID_ICNL9911))
-		cts_dev->ops = &hostcomm_ops;
-
-	//read_fwid:
+	cts_set_normal_addr(cts_dev);
 #ifdef CONFIG_CTS_I2C_HOST
 	if (!cts_plat_is_i2c_online
-	    (cts_dev->pdata, cts_dev->rtdata.slave_addr))
+	    (cts_dev->pdata, cts_dev->rtdata.slave_addr)) {
 		cts_warn("Normal mode i2c addr is offline");
-	else
+	} else
 #else
-	if (!cts_plat_is_normal_mode(cts_dev->pdata))
+	if (!cts_plat_is_normal_mode(cts_dev->pdata)) {
 		cts_warn("Normal mode spi addr is offline");
-	else
+	} else
 #endif
 	{
 		ret = cts_dev->ops->get_fw_id(cts_dev, &fwid);
-		if (ret)
+		if (ret) {
 			cts_err("Get firmware id failed %d, retries %d", ret,
 				retries);
-		else {
+		} else {
 			ret = cts_fw_reg_readw_retry(cts_dev,
 				CTS_DEVICE_FW_REG_VERSION, &device_fw_ver, 5, 0);
 			if (ret) {
@@ -2989,14 +2982,42 @@ read_hwid:
 		}
 	}
 
+read_hwid:
+	/** - Try to read hardware id,
+	 * it will enter program mode as normal
+	 */
+	ret = cts_get_hwid(cts_dev, &hwid);
+	if (ret || hwid == CTS_DEV_HWID_INVALID) {
+		retries++;
+
+		cts_err("Get hardware id failed %d retries %d", ret, retries);
+
+		if (retries < 3) {
+			cts_plat_reset_device(cts_dev->pdata);
+			goto read_hwid;
+		} else {
+			ret = -ENODEV;
+			goto err_free_rx;
+		}
+	}
+
+	if (hwid == CTS_DEV_HWID_ICNL9916
+			|| hwid == CTS_DEV_HWID_ICNL9916C
+			|| hwid == CTS_DEV_HWID_ICNL9922)
+		cts_dev->ops = &tcs_ops;
+	else if ((hwid == CTS_DEV_HWID_ICNL9911C) ||
+		   (hwid == CTS_DEV_HWID_ICNL9911S) ||
+		   (hwid == CTS_DEV_HWID_ICNL9911))
+		cts_dev->ops = &hostcomm_ops;
+
 init_hwdata:
 	ret = cts_init_device_hwdata(cts_dev, hwid, fwid);
 	if (ret) {
 		cts_err("Device hwid: %06x fwid: %04x not found", hwid, fwid);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto err_free_rx;
 	}
 
-#if 0
 #ifdef CFG_CTS_FIRMWARE_FORCE_UPDATE
 	cts_warn("Force update firmware");
 	firmware = cts_request_firmware(cts_dev,
@@ -3009,29 +3030,36 @@ init_hwdata:
 update_firmware:
 	if (firmware) {
 		++retries;
-		ret = cts_update_firmware(cts_dev, firmware, false);
+		ret = cts_update_firmware(cts_dev, firmware, true);
 		if (ret) {
 			cts_err("Update firmware failed %d retries %d", ret,
 				retries);
 
 			if (retries < 3) {
-				cts_reset_device(cts_dev);
+				cts_plat_reset_device(cts_dev->pdata);
 				goto update_firmware;
 			}
+			cts_release_firmware(firmware);
+			goto err_free_rx;
 		}
 		cts_release_firmware(firmware);
 	} else {
-		if (fwid != CTS_DEV_FWID_INVALID) {
-			ret = cts_init_fwdata(cts_dev);
-			if (ret)
-				cts_err("Device init firmware data failed %d",
-					ret);
+		if (fwid == CTS_DEV_FWID_INVALID) {
+			ret = -ENODEV;
+			goto err_free_rx;
+		}
+		ret = cts_init_fwdata(cts_dev);
+		if (ret) {
+			cts_err("Device init firmware data failed %d", ret);
+			goto err_free_rx;
 		}
 	}
-#endif
-	
+
 	return 0;
 
+err_free_rx:
+	kfree(cts_dev->rx);
+	cts_dev->rx = NULL;
 alloc_rx_exit:
 	if (cts_dev->tx) {
 		kfree(cts_dev->tx);
@@ -3300,10 +3328,15 @@ int cts_set_dev_charger_attached(struct cts_device *cts_dev, bool attached)
 	u8 buf[1];
 
 	cts_info("Set dev charger %s", attached ? "ATTACHED" : "DETATCHED");
-	buf[0] = attached ? 1 : 0;
-	ret = cts_tcs_spi_write(cts_dev, TP_STD_CMD_SYS_STS_CHARGER_PLUGIN_RW, buf, sizeof(buf));
-    if (ret)
-        cts_err("Send CMD_CHARGER_%s failed %d", attached ? "ATTACHED" : "DETACHED", ret);
+	if (cts_dev->ops == &hostcomm_ops) {
+		ret = cts_send_command(cts_dev,
+			attached ? CTS_CMD_CHARGER_ATTACHED : CTS_CMD_CHARGER_DETACHED);
+	} else {
+		buf[0] = attached ? 1 : 0;
+		ret = cts_tcs_spi_write(cts_dev, TP_STD_CMD_SYS_STS_CHARGER_PLUGIN_RW, buf, sizeof(buf));
+	}
+	if (ret)
+		cts_err("Send CMD_CHARGER_%s failed %d", attached ? "ATTACHED" : "DETACHED", ret);
 
 	return ret;
 }
@@ -3328,16 +3361,21 @@ bool cts_is_earjack_exist(struct cts_device *cts_dev)
 
 int cts_set_dev_earjack_attached(struct cts_device *cts_dev, bool attached)
 {
-    int ret;
+	int ret;
 	u8 buf[1];
 
-    cts_info("Set dev earjack %s", attached ? "ATTACHED" : "DETATCHED");
-	buf[0] = attached ? 1 : 0;
-	ret = cts_tcs_spi_write(cts_dev, TP_STD_CMD_SYS_STS_EP_PLUGIN_RW, buf, sizeof(buf));
-    if (ret)
-        cts_err("Send CMD_EARJACK_%s failed %d", attached ? "ATTACHED" : "DETACHED", ret);
-	
-    return ret;
+	cts_info("Set dev earjack %s", attached ? "ATTACHED" : "DETATCHED");
+	if (cts_dev->ops == &hostcomm_ops) {
+		ret = cts_send_command(cts_dev,
+			attached ? CTS_CMD_EARJACK_ATTACHED : CTS_CMD_EARJACK_DETACHED);
+	} else {
+		buf[0] = attached ? 1 : 0;
+		ret = cts_tcs_spi_write(cts_dev, TP_STD_CMD_SYS_STS_EP_PLUGIN_RW, buf, sizeof(buf));
+	}
+	if (ret)
+		cts_err("Send CMD_EARJACK_%s failed %d", attached ? "ATTACHED" : "DETACHED", ret);
+
+	return ret;
 }
 #endif /* CONFIG_CTS_EARJACK_DETECT */
 
@@ -3549,8 +3587,13 @@ int cts_reset_device(struct cts_device *cts_dev)
 {
 	cts_info("Reset device");
 
-	if (!cts_dev->ops)
+	if (!cts_dev->ops) {
+#ifdef CFG_CTS_HAS_RESET_PIN
+		return cts_plat_reset_device(cts_dev->pdata);
+#else
 		return cts_enter_program_mode(cts_dev);
+#endif
+	}
 
 	if (cts_dev->ops->reset_device)
 		return cts_dev->ops->reset_device(cts_dev);

@@ -11,6 +11,9 @@
 #include "cts_charger_detect.h"
 #include "cts_earjack_detect.h"
 #include "cts_oem.h"
+#include "../ILITEK_V2/tpd.h"
+
+static struct chipone_ts_data *chipone_ts_data;
 
 #ifdef CONFIG_CTS_TP_PROXIMITY
 extern int cts_set_prox_en(unsigned int enable);
@@ -422,7 +425,7 @@ static int cts_driver_probe(struct spi_device *client)
 		goto err_destroy_esd_workqueue;
 	}
 
-	ret = cts_reset_device(&cts_data->cts_dev);
+	ret = cts_plat_reset_device(cts_data->pdata);
 	if (ret < 0) {
 		cts_err("Reset device failed %d", ret);
 		goto err_free_resource;
@@ -502,13 +505,19 @@ static int cts_driver_probe(struct spi_device *client)
 		goto err_deinit_oem;
     }
 
-	/* Init firmware upgrade work and schedule */
 	INIT_DELAYED_WORK(&cts_data->fw_upgrade_work,
 		cts_firmware_upgrade_work);
-	queue_delayed_work(cts_data->workqueue, &cts_data->fw_upgrade_work,
-		msecs_to_jiffies(15 * 1000));
-
 	INIT_WORK(&cts_data->ts_resume_work, cts_resume_work_func);
+
+	ret = cts_start_device(&cts_data->cts_dev);
+	if (ret) {
+		cts_err("Start device failed %d", ret);
+		goto err_deinit_oem;
+	}
+
+	chipone_ts_data = cts_data;
+	tpd_load_status = 1;
+
 	return 0;
 
 err_deinit_oem:
@@ -955,7 +964,7 @@ static struct spi_driver cts_spi_driver = {
 	.id_table = cts_device_id_table,
 };
 
-static int __init cts_driver_init(void)
+static int cts_driver_init(void)
 {
 	cts_info("Init");
 
@@ -967,7 +976,7 @@ static int __init cts_driver_init(void)
 #endif
 }
 
-static void __exit cts_driver_exit(void)
+static void cts_driver_exit(void)
 {
 	cts_info("Exit");
 
@@ -978,8 +987,75 @@ static void __exit cts_driver_exit(void)
 #endif
 }
 
-module_init(cts_driver_init);
-module_exit(cts_driver_exit);
+static int chipone_tpd_local_init(void)
+{
+	int ret;
+
+	ret = cts_driver_init();
+	if (ret != 0) {
+		cts_err("Init driver failed %d", ret);
+		return ret;
+	}
+
+	if (tpd_load_status == 0) {
+		cts_err("I2C driver not load successfully, exit.");
+		cts_driver_exit();
+		return -1;
+	}
+
+	if (tpd_dts_data.use_tpd_button) {
+		tpd_button_setting(tpd_dts_data.tpd_key_num,
+				   tpd_dts_data.tpd_key_local,
+				   tpd_dts_data.tpd_key_dim_local);
+	}
+	tpd_type_cap = 1;
+	return 0;
+}
+
+static void chipone_tpd_suspend(struct device *h)
+{
+	if (chipone_ts_data)
+		cts_suspend(chipone_ts_data);
+}
+
+static void chipone_tpd_resume(struct device *h)
+{
+	if (chipone_ts_data)
+		cts_resume(chipone_ts_data);
+}
+
+static struct tpd_driver_t chipone_tpd_driver = {
+	.tpd_device_name = CFG_CTS_DRIVER_NAME,
+	.tpd_local_init = chipone_tpd_local_init,
+	.suspend = chipone_tpd_suspend,
+	.resume = chipone_tpd_resume,
+	.tpd_have_button = 0,
+};
+
+static int __init chipone_tpd_driver_init(void)
+{
+	cts_info("Chipone TDDI TPD driver %s", CFG_CTS_DRIVER_VERSION);
+
+	tpd_get_dts_info();
+	if (tpd_dts_data.touch_max_num < 2)
+		tpd_dts_data.touch_max_num = 2;
+	else if (tpd_dts_data.touch_max_num > CFG_CTS_MAX_TOUCH_NUM)
+		tpd_dts_data.touch_max_num = CFG_CTS_MAX_TOUCH_NUM;
+
+	if (tpd_driver_add(&chipone_tpd_driver) < 0)
+		cts_err("Add TPD driver failed");
+
+	return 0;
+}
+
+static void __exit chipone_tpd_driver_exit(void)
+{
+	cts_info("Chipone TPD driver exit");
+	tpd_driver_remove(&chipone_tpd_driver);
+}
+
+module_init(chipone_tpd_driver_init);
+module_exit(chipone_tpd_driver_exit);
 
 #if KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE
 MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);

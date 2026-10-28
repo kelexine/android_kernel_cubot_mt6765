@@ -1362,6 +1362,11 @@ int ilitek_tddi_ic_get_info(void)
 
 	ipio_info("CHIP: PID = %x\n",(idev->chip->pid >> 8));
 
+	if (pid == 0 || pid == 0xFFFFFFFF) {
+		ipio_err("Invalid CHIP PID = 0x%08x\n", pid);
+		return -ENODEV;
+	}
+
 	ilitek_tddi_ic_setting();
 	return ret;
 }
@@ -1373,6 +1378,7 @@ int ilitek_tddi_ic_dummy_check(bool mcu)
 	u32 rdata = 0;
 
 	do {
+		atomic_set(&idev->ice_stat, DISABLE);
 		ret = ilitek_ice_mode_ctrl(ENABLE, mcu);
 		if (ret < 0) {
 			ipio_err("Failed to enable ice mode during ili_tddi_init\n");
@@ -1402,6 +1408,7 @@ int ilitek_tddi_ic_dummy_check(bool mcu)
 
 	if (retry < 0) {
 		ipio_err("Ilitek IC check Fail\n");
+		atomic_set(&idev->ice_stat, DISABLE);
 		ret = -1;
 	}
 

@@ -60,9 +60,29 @@ grep -q '^#define CFG_CTS_PANEL_MATCH.*"icnl9911"' "${cfg}" && ok "panel match i
 grep -q 'ret = cts_get_panel();' "${drv}" && ok "gate called from probe" || bad "gate not called from probe"
 if grep -q 'saved_command_line' "${drv}"; then bad "legacy cmdline panel parser still present"; else ok "legacy cmdline panel parser removed"; fi
 
-# Ilitek must step aside on the Chipone panel.
-grep -q 'mtk_lcm_gate_is_active(ILITEK_FOREIGN_PANEL)' "${TS_DIR}/ILITEK_V2/ilitek_plat_mtk.c" \
-    && ok "ilitek gate present" || bad "ilitek gate missing"
+# Ilitek stock parity checks (TDDI_RST_BIND disabled, ilitek_wrapper wired, len returned).
+grep -q '^#define TDDI_RST_BIND.*DISABLE' "${TS_DIR}/ILITEK_V2/ilitek.h" \
+    && ok "ilitek TDDI_RST_BIND is DISABLE (stock parity)" || bad "ilitek TDDI_RST_BIND is not DISABLE"
+grep -q 'idev->wrapper = ilitek_wrapper;' "${TS_DIR}/ILITEK_V2/ilitek_i2c.c" \
+    && ok "ilitek_i2c uses stock ilitek_wrapper" || bad "ilitek_i2c not using ilitek_wrapper"
+grep -q 'return len;' "${TS_DIR}/ILITEK_V2/ilitek_i2c.c" \
+    && ok "ilitek_i2c_read returns byte length" || bad "ilitek_i2c_read does not return byte length"
+
+# Stock ICNL9911C parity checks (Ghidra RE of stock_vmlinux.elf v1.33.0)
+grep -q 'tpd_driver_add(&chipone_tpd_driver)' "${drv}" \
+    && ok "chipone registers with MTK tpd_driver_add" || bad "chipone missing tpd_driver_add"
+grep -q 'ret = cts_start_device(&cts_data->cts_dev);' "${drv}" \
+    && ok "cts_driver_probe starts device synchronously" || bad "cts_driver_probe does not call cts_start_device"
+grep -q 'tpd_gpio_as_int(1)' "${CTS}/cts_platform.c" \
+    && ok "cts_platform requests EINT pinctrl via tpd_gpio_as_int" || bad "cts_platform missing tpd_gpio_as_int"
+grep -q 'tpd_gpio_output(0,' "${CTS}/cts_platform.c" \
+    && ok "cts_platform drives RST pinctrl via tpd_gpio_output" || bad "cts_platform missing tpd_gpio_output"
+grep -q '0x015ff8' "${CTS}/cts_core.c" && grep -q '0x015ffc' "${CTS}/cts_core.c" \
+    && ok "cts_core writes ICNL9911C boot CRC/LEN to 0x015FF8/0x015FFC" || bad "cts_core missing 0x015FF8/0x015FFC boot CRC"
+grep -q 'CTS_CMD_SUSPEND_WITH_GESTURE' "${CTS}/cts_hostcomm.c" \
+    && ok "cts_hostcomm implements set_pwr_mode suspend commands" || bad "cts_hostcomm set_pwr_mode still stubbed"
+grep -q 'find_flash_by_jedec_id' "${CTS}/cts_spi_flash.c" \
+    && ok "cts_spi_flash JEDEC table and probe_flash restored" || bad "cts_spi_flash probe_flash still stubbed"
 
 echo "== 3. kernel object build (optional)"
 # mtkfb.o cannot be built standalone (its include paths come from the full
@@ -79,18 +99,24 @@ if [[ -n "${KERNEL_O:-}" ]]; then
                drivers/input/touchscreen/ILITEK_V2/ilitek_plat_mtk.o; do
         # Force a recompile so a stale object cannot mask a regression.
         touch "${ksrc}/${obj%.o}.c"
-        if (cd "${ksrc}" && make -s ARCH=arm64 CROSS_COMPILE="${cc}" HOSTCC=gcc \
-                O="${KERNEL_O}" "${obj}" >"${WORK}/mk.log" 2>&1); then
+        if (cd "${ksrc}" && make -s ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=clang \
+                LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy \
+                OBJDUMP=llvm-objdump STRIP=llvm-strip \
+                CLANG_TRIPLE="${cc}" CROSS_COMPILE="${cc}" HOSTCC=gcc \
+                TARGET_PRODUCT=marlon MTK_PLATFORM=mt6765 \
+                O="${KERNEL_O}" "${obj}" </dev/null >"${WORK}/mk.log" 2>&1); then
             if grep -E 'warning:|error:' "${WORK}/mk.log" | grep -v 'scripts/' | grep -q .; then
                 grep -E 'warning:|error:' "${WORK}/mk.log" | grep -v 'scripts/' >&2
                 bad "${obj##*/} builds with warnings"
             else
                 ok "${obj##*/} builds clean"
             fi
-            if "${cc}nm" "${KERNEL_O}/${obj}" | grep -q ' U mtkfb_lcm_name'; then
-                ok "${obj##*/} links the LCM name gate"
-            else
-                bad "${obj##*/} does not reference mtkfb_lcm_name"
+            if [[ "${obj}" == *cts_i2c_driver.o ]]; then
+                if llvm-nm "${KERNEL_O}/${obj}" | grep -q ' U mtkfb_lcm_name'; then
+                    ok "${obj##*/} links the LCM name gate"
+                else
+                    bad "${obj##*/} does not reference mtkfb_lcm_name"
+                fi
             fi
         else
             tail -5 "${WORK}/mk.log" >&2; bad "${obj##*/} failed to build"
