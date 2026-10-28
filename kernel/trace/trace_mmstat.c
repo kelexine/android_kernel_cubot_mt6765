@@ -274,7 +274,8 @@ static bool filter_out_process(struct task_struct *p, pid_t pid,
 
 	/* by ppid, bypass process whose parent is init */
 	if (pid_alive(p)) {
-		if (task_pid_nr(rcu_dereference(p->real_parent)) == 1)
+		struct task_struct *parent = rcu_dereference(p->real_parent);
+		if (parent && task_pid_nr(parent) == 1)
 			return true;
 	} else {
 		return true;
