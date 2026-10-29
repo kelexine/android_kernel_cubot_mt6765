@@ -4376,9 +4376,9 @@ static int mt6370_get_charger_type(struct mt6370_pmu_charger_data *chg_data,
 		pr_notice("%s Couldn't get chg_psy\n", __func__);
 	else {
 		prop.intval = attach;
+		ret = power_supply_set_property(chg_psy,
+				POWER_SUPPLY_PROP_ONLINE, &prop);
 		if (attach) {
-			ret = power_supply_set_property(chg_psy,
-					POWER_SUPPLY_PROP_ONLINE, &prop);
 			ret = power_supply_get_property(chg_psy,
 					POWER_SUPPLY_PROP_TYPE, &prop2);
 			ret = power_supply_get_property(chg_psy,

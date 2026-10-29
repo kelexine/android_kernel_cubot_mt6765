@@ -584,9 +584,9 @@ void do_charger_detect(struct mtk_charger_type *info, bool en)
 #endif
 
 	prop.intval = en;
+	ret = power_supply_set_property(info->psy,
+			POWER_SUPPLY_PROP_ONLINE, &prop);
 	if (en) {
-		ret = power_supply_set_property(info->psy,
-				POWER_SUPPLY_PROP_ONLINE, &prop);
 		ret = power_supply_get_property(info->psy,
 				POWER_SUPPLY_PROP_TYPE, &prop2);
 		ret = power_supply_get_property(info->psy,
@@ -710,7 +710,12 @@ int psy_chr_type_set_property(struct power_supply *psy,
 	info = (struct mtk_charger_type *)power_supply_get_drvdata(psy);
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
-		info->type = get_charger_type(info);
+		if (val->intval == 0) {
+			info->type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
+			info->psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
+		} else {
+			info->type = get_charger_type(info);
+		}
 		break;
 	default:
 		return -EINVAL;
