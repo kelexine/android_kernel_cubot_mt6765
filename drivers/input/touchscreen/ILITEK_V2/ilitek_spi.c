@@ -1050,6 +1050,12 @@ static int ilitek_spi_remove(struct spi_device *spi)
 	return 0;
 }
 
+static void ilitek_spi_shutdown(struct spi_device *spi)
+{
+	ipio_info("ilitek spi shutdown\n");
+	ilitek_tddi_shutdown();
+}
+
 static struct spi_device_id tp_spi_id[] = {
 	{TDDI_DEV_ID, 0},
 	{},
@@ -1080,6 +1086,7 @@ int ilitek_tddi_interface_dev_init(struct ilitek_hwif_info *hwif)
 
 	info->bus_driver.probe = ilitek_spi_probe;
 	info->bus_driver.remove = ilitek_spi_remove;
+	info->bus_driver.shutdown = ilitek_spi_shutdown;
 	info->bus_driver.id_table = tp_spi_id;
 
 	info->hwif = hwif;

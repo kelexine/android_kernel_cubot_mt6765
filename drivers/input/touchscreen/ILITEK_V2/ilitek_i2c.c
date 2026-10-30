@@ -227,6 +227,12 @@ static int ilitek_i2c_remove(struct i2c_client *client)
 	return 0;
 }
 
+static void ilitek_i2c_shutdown(struct i2c_client *client)
+{
+	ipio_info("ilitek i2c shutdown\n");
+	ilitek_tddi_shutdown();
+}
+
 static int ilitek_i2c_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	strcpy(info->type, TDDI_DEV_ID);
@@ -271,6 +277,7 @@ int ilitek_tddi_interface_dev_init(struct ilitek_hwif_info *hwif)
 
 	info->bus_driver.probe = ilitek_i2c_probe;
 	info->bus_driver.remove = ilitek_i2c_remove;
+	info->bus_driver.shutdown = ilitek_i2c_shutdown;
 	info->bus_driver.detect = ilitek_i2c_detect;
 	info->bus_driver.id_table = tp_i2c_id;
 	info->bus_driver.address_list = (const unsigned short *)forces;

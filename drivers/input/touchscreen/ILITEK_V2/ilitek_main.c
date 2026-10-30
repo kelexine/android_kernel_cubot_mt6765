@@ -31,6 +31,39 @@ static struct workqueue_struct *bat_wq;
 static struct delayed_work esd_work;
 static struct delayed_work bat_work;
 
+static bool ilitek_is_system_shutting_down(void)
+{
+	if (idev && READ_ONCE(idev->tp_shutdown))
+		return true;
+
+	return system_state == SYSTEM_RESTART ||
+	       system_state == SYSTEM_POWER_OFF ||
+	       system_state == SYSTEM_HALT;
+}
+
+static void ilitek_irq_wake_ctrl(bool enable)
+{
+	int ret;
+
+	if (!idev || idev->irq_num <= 0)
+		return;
+
+	if (enable && !idev->irq_wake_enabled) {
+		ret = enable_irq_wake(idev->irq_num);
+		if (ret == 0)
+			idev->irq_wake_enabled = true;
+		else
+			ipio_err("enable_irq_wake(%d) failed: %d\n",
+				 idev->irq_num, ret);
+	} else if (!enable && idev->irq_wake_enabled) {
+		ret = disable_irq_wake(idev->irq_num);
+		if (ret < 0)
+			ipio_err("disable_irq_wake(%d) failed: %d\n",
+				 idev->irq_num, ret);
+		idev->irq_wake_enabled = false;
+	}
+}
+
 #if RESUME_BY_DDI
 static struct workqueue_struct	*resume_by_ddi_wq;
 static struct work_struct	resume_by_ddi_work;
@@ -39,8 +72,7 @@ static void ilitek_resume_by_ddi_work(struct work_struct *work)
 {
 	mutex_lock(&idev->touch_mutex);
 
-	if (idev->gesture)
-		disable_irq_wake(idev->irq_num);
+	ilitek_irq_wake_ctrl(false);
 
 	/* Set tp as demo mode and reload code if it's iram. */
 	idev->actual_tp_mode = P5_X_FW_AP_MODE;
@@ -429,8 +461,17 @@ int ilitek_tddi_sleep_handler(int mode)
 {
 	int ret = 0;
 	bool sense_stop = true;
+	bool shutting_down;
+	bool use_gesture;
 
 	mutex_lock(&idev->touch_mutex);
+	shutting_down = ilitek_is_system_shutting_down();
+	if (shutting_down && mode == TP_RESUME) {
+		ipio_info("system shutting down, ignore TP resume\n");
+		mutex_unlock(&idev->touch_mutex);
+		return 0;
+	}
+
 	atomic_set(&idev->tp_sleep, START);
 
 	if (atomic_read(&idev->fw_stat) ||
@@ -461,7 +502,8 @@ int ilitek_tddi_sleep_handler(int mode)
 	else
 		sense_stop = true;
 
-	tp_gesture = idev->gesture;
+	use_gesture = idev->gesture && !shutting_down;
+	tp_gesture = use_gesture ? ENABLE : DISABLE;
 
 	switch (mode) {
 	case TP_SUSPEND:
@@ -475,12 +517,13 @@ int ilitek_tddi_sleep_handler(int mode)
 				ipio_err("Check busy timeout during suspend\n");
 		}
 
-		if (idev->gesture) {
+		if (use_gesture) {
 			ilitek_tddi_switch_tp_mode(P5_X_FW_GESTURE_MODE);
-			enable_irq_wake(idev->irq_num);
+			ilitek_irq_wake_ctrl(true);
 			/* Re-arm IRQ so the chip can signal gesture events */
 			ilitek_plat_irq_enable();
 		} else {
+			ilitek_irq_wake_ctrl(false);
 			if (ilitek_tddi_ic_func_ctrl("sleep", SLEEP_IN, NULL, 0) < 0)
 				ipio_err("Write sleep in cmd failed\n");
 		}
@@ -497,12 +540,13 @@ int ilitek_tddi_sleep_handler(int mode)
 				ipio_err("Check busy timeout during deep suspend\n");
 		}
 
-		if (idev->gesture) {
+		if (use_gesture) {
 			ilitek_tddi_switch_tp_mode(P5_X_FW_GESTURE_MODE);
-			enable_irq_wake(idev->irq_num);
+			ilitek_irq_wake_ctrl(true);
 			/* Re-arm IRQ so the chip can signal gesture events */
 			ilitek_plat_irq_enable();
 		} else {
+			ilitek_irq_wake_ctrl(false);
 			if (ilitek_tddi_ic_func_ctrl("sleep", DEEP_SLEEP_IN, NULL, 0) < 0)
 				ipio_err("Write deep sleep in cmd failed\n");
 		}
@@ -512,8 +556,7 @@ int ilitek_tddi_sleep_handler(int mode)
 #if !RESUME_BY_DDI
 		ipio_info("TP resume start\n");
 
-		if (idev->gesture)
-			disable_irq_wake(idev->irq_num);
+		ilitek_irq_wake_ctrl(false);
 
 		/* Set tp as demo mode and reload code if it's iram. */
 		idev->actual_tp_mode = P5_X_FW_AP_MODE;
@@ -708,6 +751,11 @@ int ilitek_tddi_report_handler(void)
 	u8 *trdata = NULL;
 	int rlen = 0;
 	int tmp = ipio_debug_level;
+
+	if (ilitek_is_system_shutting_down()) {
+		ipio_debug("ignore report request during shutdown\n");
+		return -ESHUTDOWN;
+	}
 
 	/* Just in case these stats couldn't be blocked in top half context */
 	if (!idev->report || atomic_read(&idev->tp_reset) ||
@@ -1015,6 +1063,51 @@ static void ilitek_update_tp_module_info(void)
 	idev->tp_module = module;
 }
 
+void ilitek_tddi_shutdown(void)
+{
+	if (!idev || READ_ONCE(idev->tp_shutdown_done))
+		return;
+
+	ipio_info("TP shutdown start\n");
+	WRITE_ONCE(idev->tp_shutdown, true);
+	idev->report = DISABLE;
+
+	ilitek_tddi_wq_ctrl(WQ_ESD, DISABLE);
+	ilitek_tddi_wq_ctrl(WQ_BAT, DISABLE);
+
+	ilitek_plat_irq_disable();
+	if (idev->irq_num > 0)
+		synchronize_irq(idev->irq_num);
+
+	mutex_lock(&idev->touch_mutex);
+	if (!idev->tp_shutdown_done) {
+		ilitek_irq_wake_ctrl(false);
+		idev->gesture = DISABLE;
+		tp_gesture = 0;
+		if (idev->ws)
+			__pm_relax(idev->ws);
+
+		if (!idev->tp_suspend ||
+		    idev->actual_tp_mode == P5_X_FW_GESTURE_MODE) {
+			if (ilitek_tddi_ic_func_ctrl("sleep", DEEP_SLEEP_IN,
+						     NULL, 0) < 0)
+				ipio_err("Write deep sleep cmd failed in shutdown\n");
+			idev->actual_tp_mode = P5_X_FW_AP_MODE;
+			idev->tp_suspend = true;
+		}
+		WRITE_ONCE(idev->tp_shutdown_done, true);
+	}
+	mutex_unlock(&idev->touch_mutex);
+	ipio_info("TP shutdown end\n");
+}
+
+static int ilitek_reboot_notifier_callback(struct notifier_block *nb,
+					   unsigned long action, void *data)
+{
+	ilitek_tddi_shutdown();
+	return NOTIFY_DONE;
+}
+
 int ilitek_tddi_init(void)
 {
 #if (BOOT_FW_UPDATE | HOST_DOWN_LOAD)
@@ -1120,6 +1213,12 @@ int ilitek_tddi_init(void)
 	if (!idev->ws)
 		ipio_err("wakeup source request failed\n");
 
+	idev->notifier_reboot.notifier_call = ilitek_reboot_notifier_callback;
+	if (register_reboot_notifier(&idev->notifier_reboot) != 0) {
+		ipio_err("Unable to register reboot notifier\n");
+		idev->notifier_reboot.notifier_call = NULL;
+	}
+
 	ilitek_tddi_ic_edge_palm_para_init();
 	return 0;
 }
@@ -1130,6 +1229,11 @@ void ilitek_tddi_dev_remove(void)
 
 	if (!idev)
 		return;
+
+	if (idev->notifier_reboot.notifier_call) {
+		unregister_reboot_notifier(&idev->notifier_reboot);
+		idev->notifier_reboot.notifier_call = NULL;
+	}
 
 	gpio_free(idev->tp_int);
 	gpio_free(idev->tp_rst);

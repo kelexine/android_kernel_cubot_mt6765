@@ -2581,7 +2581,8 @@ static void mtkfb_shutdown(struct platform_device *pdev)
 		msleep(2 * 100000 / lcd_fps);	/* Delay 2 frames. */
 
 	if (primary_display_is_sleepd()) {
-		MTKFB_LOG("mtkfb has been power off\n");
+		MTKFB_LOG("mtkfb has been power off, disabling LCM bias\n");
+		display_bias_disable();
 		return;
 	}
 	primary_display_set_power_mode(FB_SUSPEND);

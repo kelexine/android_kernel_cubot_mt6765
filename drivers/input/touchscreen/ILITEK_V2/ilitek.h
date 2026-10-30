@@ -78,6 +78,7 @@
 #include <linux/security.h>
 #include <linux/mount.h>
 #include <linux/firmware.h>
+#include <linux/reboot.h>
 
 #ifdef CONFIG_OF
 #include <linux/of_address.h>
@@ -804,6 +805,7 @@ struct ilitek_tddi_dev {
 #else
 	struct early_suspend early_suspend;
 #endif
+	struct notifier_block notifier_reboot;
 #if CHARGER_NOTIFIER_CALLBACK
 #if KERNEL_VERSION(4, 1, 0) <= LINUX_VERSION_CODE
 /* add_for_charger_start */
@@ -914,6 +916,9 @@ struct ilitek_tddi_dev {
 	bool irq_after_recovery;
 	bool ddi_rest_done;
 	bool tp_suspend;
+	bool irq_wake_enabled;
+	bool tp_shutdown;
+	bool tp_shutdown_done;
 	bool info_from_hex;
 	bool prox_near;
 	bool gesture_load_code;
@@ -1130,6 +1135,7 @@ extern void ilitek_tddi_wq_ctrl(int type, int ctrl);
 extern int ilitek_tddi_mp_test_handler(char *apk, bool lcm_on);
 extern int ilitek_tddi_report_handler(void);
 extern int ilitek_tddi_sleep_handler(int mode);
+extern void ilitek_tddi_shutdown(void);
 extern int ilitek_tddi_reset_ctrl(int mode);
 extern int ilitek_tddi_init(void);
 extern int ilitek_tddi_dev_init(struct ilitek_hwif_info *hwif);
