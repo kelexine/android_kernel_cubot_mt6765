@@ -188,7 +188,12 @@ __mutex_add_waiter(struct mutex *lock, struct mutex_waiter *waiter,
 #ifndef CONFIG_UIFIRST
 	list_add_tail(&waiter->list, list);
 #else /* CONFIG_UIFIRST */
-	if (sysctl_uifirst_enabled) {
+	/*
+	 * UX reordering is only valid for plain FIFO insertion at the list
+	 * head. ww_mutex callers pass an interior stamp-ordered node, which
+	 * must be honoured verbatim to keep Wound-Wait/Wait-Die correct.
+	 */
+	if (sysctl_uifirst_enabled && list == &lock->wait_list) {
 		mutex_list_add(current, &waiter->list, list, lock);
 	} else {
 		list_add_tail(&waiter->list, list);
@@ -969,6 +974,9 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
 
 	lock_contended(&lock->dep_map, ip);
 
+	/* UX list ordering inspects waiter->task of queued entries. */
+	waiter.task = current;
+
 	if (!use_ww_ctx) {
 		/* add waiting tasks to the end of the waitqueue (FIFO): */
 		__mutex_add_waiter(lock, &waiter, &lock->wait_list);
@@ -988,8 +996,6 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
 
 		waiter.ww_ctx = ww_ctx;
 	}
-
-	waiter.task = current;
 
 	set_current_state(state);
 	for (;;) {
@@ -1076,6 +1082,13 @@ skip_wait:
 err:
 	__set_current_state(TASK_RUNNING);
 	__mutex_remove_waiter(lock, &waiter);
+#ifdef CONFIG_UIFIRST
+	/*
+	 * Owner may now unlock via the fastpath and skip the slowpath
+	 * unset hook; drop inherited UX if no UX waiter remains.
+	 */
+	mutex_clear_inherit_ux_on_abort(lock);
+#endif /* CONFIG_UIFIRST */
 err_early_kill:
 	spin_unlock(&lock->wait_lock);
 	debug_mutex_free_waiter(&waiter);

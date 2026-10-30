@@ -113,7 +113,7 @@
 #endif
 #endif /* OPLUS_FEATURE_HEALTHINFO */
 
-#ifdef OPLUS_FEATURE_UIFIRST
+#ifdef CONFIG_UIFIRST
 #define GLOBAL_SYSTEM_UID KUIDT_INIT(1000)
 #define GLOBAL_SYSTEM_GID KGIDT_INIT(1000)
 extern const struct file_operations proc_static_ux_operations;
@@ -121,7 +121,7 @@ extern const struct file_operations proc_static_ux_operations;
 extern const struct file_operations proc_camera_opt_operations;
 #endif
 extern bool is_special_entry(struct dentry *dentry, const char* special_proc);
-#endif /* OPLUS_FEATURE_UIFIRST */
+#endif /* CONFIG_UIFIRST */
 
 #ifdef VENDOR_EDIT
 extern size_t get_ion_heap_by_pid(pid_t pid);
@@ -1933,12 +1933,12 @@ static int pid_revalidate(struct dentry *dentry, unsigned int flags)
 
 	if (task) {
 		pid_update_inode(task, inode);
-#ifdef OPLUS_FEATURE_UIFIRST
+#ifdef CONFIG_UIFIRST
 		if (is_special_entry(dentry, "static_ux")) {
 			inode->i_uid = GLOBAL_SYSTEM_UID;
 			inode->i_gid = GLOBAL_SYSTEM_GID;
 		}
-#endif /* OPLUS_FEATURE_UIFIRST */
+#endif /* CONFIG_UIFIRST */
 
 		put_task_struct(task);
 		return 1;
@@ -3581,12 +3581,12 @@ static const struct pid_entry tid_base_stuff[] = {
 #ifdef CONFIG_CPU_FREQ_TIMES
 	ONE("time_in_state", 0444, proc_time_in_state_show),
 #endif
-#ifdef OPLUS_FEATURE_UIFIRST
+#ifdef CONFIG_UIFIRST
 	REG("static_ux", S_IRUGO | S_IWUGO, proc_static_ux_operations),
 #ifdef CONFIG_CAMERA_OPT
         REG("camera_opt", S_IRUGO | S_IWUGO, proc_camera_opt_operations),
 #endif
-#endif /* OPLUS_FEATURE_UIFIRST */
+#endif /* CONFIG_UIFIRST */
 
 #ifdef VENDOR_EDIT
 	REG("real_phymemory",   S_IRUGO, proc_pid_real_phymemory_ops),

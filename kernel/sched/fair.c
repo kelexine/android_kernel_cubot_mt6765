@@ -941,7 +941,7 @@ update_stats_wait_end(struct cfs_rq *cfs_rq, struct sched_entity *se)
 		update_jank_trace_info(p, JANK_TRACE_RUNNABLE, 0, delta);
 #endif
 #endif /* OPLUS_FEATURE_HEALTHINFO */
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
 		sched_assist_update_record(p, delta, TST_RUNNABLE);
 #endif
 		trace_sched_stat_wait(p, delta);
@@ -990,7 +990,7 @@ update_stats_enqueue_sleeper(struct cfs_rq *cfs_rq, struct sched_entity *se)
 #endif
 #endif /* OPLUS_FEATURE_HEALTHINFO */
 
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
 			sched_assist_update_record(tsk, delta, TST_SLEEP);
 #endif
 		}
@@ -1034,7 +1034,7 @@ update_stats_enqueue_sleeper(struct cfs_rq *cfs_rq, struct sched_entity *se)
 			update_jank_trace_info(tsk, JANK_TRACE_DSTATE, 0, delta);
 #endif
 #endif /* OPLUS_FEATURE_HEALTHINFO */
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
 			sched_assist_update_record(tsk, delta, TST_SLEEP);
 #endif
 			trace_sched_stat_blocked(tsk, delta);
@@ -4375,9 +4375,9 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 
 	se = left; /* ideally we run the leftmost entity */
 #ifdef CONFIG_UIFIRST_AUDIO_OPT
-	if (sched_assist_pick_next_task(cfs_rq,se)) {
-			return se;
-	}
+	/* Short-running audio burst nominated as next buddy wins the pick. */
+	if (sched_assist_pick_next_task_opt(cfs_rq, &se))
+		return se;
 #endif
 	/*
 	 * Avoid running the skip buddy, if running something else can
@@ -5539,7 +5539,7 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	if (!se)
 		sub_nr_running(rq, 1);
 
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
 	if (!se && task_sleep) {
 		sched_assist_update_record(p, p->se.sum_exec_runtime - p->se.prev_sum_exec_runtime, TST_EXEC);
 	}
@@ -7771,7 +7771,7 @@ static void set_skip_buddy(struct sched_entity *se)
 /*
  * Preempt the current task with a newly woken task if needed:
  */
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
 extern bool is_small_task(struct task_struct *task);
 #endif
 static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_flags)
@@ -7827,7 +7827,7 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 	find_matching_se(&se, &pse);
 	update_curr(cfs_rq_of(se));
 	BUG_ON(!pse);
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
 	if (unlikely(is_small_task(p))) {
 		if (!next_buddy_marked)
 			set_next_buddy(pse);

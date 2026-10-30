@@ -74,7 +74,6 @@
 #include "locking/rtmutex_common.h"
 
 #ifdef CONFIG_UIFIRST
-#include <linux/uifirst/uifirst_sched_futex.h>
 #include <linux/uifirst/uifirst_sched_common.h>
 #endif /* CONFIG_UIFIRST */
 
@@ -248,10 +247,6 @@ struct futex_q {
 	struct plist_node list;
 
 	struct task_struct *task;
-#ifdef CONFIG_UIFIRST
-	struct task_struct *wait_for;
-	atomic_t ux_waitings;
-#endif /* CONFIG_UIFIRST */
 	spinlock_t *lock_ptr;
 	union futex_key key;
 	struct futex_pi_state *pi_state;
@@ -1640,14 +1635,6 @@ futex_wake(u32 __user *uaddr, unsigned int flags, int nr_wake, u32 bitset)
 			if (!(this->bitset & bitset))
 				continue;
 
-#ifdef CONFIG_UIFIRST
-		if (sysctl_uifirst_enabled) {
-			int ux_waitings = atomic_read(&(this->ux_waitings));
-			if (ux_waitings > 0) {
-				futex_unset_inherit_ux_refs(current, ux_waitings);
-			}
-		}
-#endif /* CONFIG_UIFIRST */
 			mark_wake_futex(&wake_q, this);
 			if (++ret >= nr_wake)
 				break;
@@ -2630,16 +2617,6 @@ static void futex_wait_queue_me(struct futex_hash_bucket *hb, struct futex_q *q,
 	 * access to the hash list and forcing another memory barrier.
 	 */
 	set_current_state(TASK_INTERRUPTIBLE);
-#ifdef CONFIG_UIFIRST
-	if (sysctl_uifirst_enabled) {
-		if (!timeout) {
-			futex_set_inherit_ux_refs(q->wait_for, current);
-			if (test_set_dynamic_ux(current)) {
-				atomic_inc(&(q->ux_waitings));
-			}
-		}
-	}
-#endif /* CONFIG_UIFIRST */
 	queue_me(q, hb);
 
 	/* Arm the timer */
@@ -2749,30 +2726,8 @@ out:
 	return ret;
 }
 
-#ifdef CONFIG_UIFIRST
-static struct task_struct* get_futex_owner_by_pid_local(u32 owner_tid) {
-	struct task_struct* futex_owner = NULL;
-
-	if (owner_tid > 0 && owner_tid <= PID_MAX_DEFAULT) {
-		rcu_read_lock();
-		futex_owner = find_task_by_vpid(owner_tid);
-		if (futex_owner) {
-			get_task_struct(futex_owner);
-		}
-		rcu_read_unlock();
-	}
-
-	return futex_owner;
-}
-#endif /* CONFIG_UIFIRST */
-
-#ifndef CONFIG_UIFIRST
 static int futex_wait(u32 __user *uaddr, unsigned int flags, u32 val,
 		      ktime_t *abs_time, u32 bitset)
-#else /* CONFIG_UIFIRST */
-static int futex_wait(u32 __user *uaddr, unsigned int flags, u32 val,
-                ktime_t *abs_time, u32 bitset, u32 owner_tid)
-#endif /* CONFIG_UIFIRST */
 {
 	struct hrtimer_sleeper timeout, *to = NULL;
 	struct restart_block *restart;
@@ -2783,18 +2738,6 @@ static int futex_wait(u32 __user *uaddr, unsigned int flags, u32 val,
 	if (!bitset)
 		return -EINVAL;
 	q.bitset = bitset;
-#ifdef CONFIG_UIFIRST
-	if (sysctl_uifirst_enabled && (bitset == FUTEX_BITSET_MATCH_ANY) && test_task_ux(current)) {
-		struct task_struct* owner_task = get_futex_owner_by_pid_local(owner_tid);
-		if (owner_task != NULL) {
-			if ((current->tgid == owner_task->tgid) || (flags & FLAGS_SHARED)) {
-				q.wait_for = owner_task;
-			} else {
-				put_task_struct(owner_task);
-			}
-		}
-	}
-#endif /* CONFIG_UIFIRST */
 
 	if (abs_time) {
 		to = &timeout;
@@ -2846,9 +2789,6 @@ retry:
 	restart->futex.time = *abs_time;
 	restart->futex.bitset = bitset;
 	restart->futex.flags = flags | FLAGS_HAS_TIMEOUT;
-#ifdef CONFIG_UIFIRST
-	restart->futex.uaddr2 = (u32*)(long)owner_tid;
-#endif /* CONFIG_UIFIRST */
 
 	ret = -ERESTART_RESTARTBLOCK;
 
@@ -2857,10 +2797,6 @@ out:
 		hrtimer_cancel(&to->timer);
 		destroy_hrtimer_on_stack(&to->timer);
 	}
-#ifdef CONFIG_UIFIRST
-	if (q.wait_for)
-		put_task_struct(q.wait_for);
-#endif /* CONFIG_UIFIRST */
 	return ret;
 }
 
@@ -2876,13 +2812,8 @@ static long futex_wait_restart(struct restart_block *restart)
 	}
 	restart->fn = do_no_restart_syscall;
 
-#ifndef CONFIG_UIFIRST
 	return (long)futex_wait(uaddr, restart->futex.flags,
 				restart->futex.val, tp, restart->futex.bitset);
-#else /* CONFIG_UIFIRST */
-    return (long)futex_wait(uaddr, restart->futex.flags,
-                restart->futex.val, tp, restart->futex.bitset, (u32)(long)(restart->futex.uaddr2));
-#endif /* CONFIG_UIFIRST */
 }
 
 
@@ -3799,11 +3730,7 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
 		val3 = FUTEX_BITSET_MATCH_ANY;
 		/* fall through */
 	case FUTEX_WAIT_BITSET:
-#ifndef CONFIG_UIFIRST
-	return futex_wait(uaddr, flags, val, timeout, val3);
-#else /* CONFIG_UIFIRST */
-        return futex_wait(uaddr, flags, val, timeout, val3, (u32)(long)uaddr2);
-#endif /* CONFIG_UIFIRST */
+		return futex_wait(uaddr, flags, val, timeout, val3);
 	case FUTEX_WAKE:
 		val3 = FUTEX_BITSET_MATCH_ANY;
 		/* fall through */

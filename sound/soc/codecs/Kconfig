@@ -1316,8 +1316,9 @@ config MT6357_ACCDET_DEBOUNCE
 	depends on SND_SOC_MT6357_ACCDET
 	default y
 	help
-	  Enable delayed work debounce (500ms) on 3.5mm headset plug insertion
-	  to prevent false detection triggers and electrical popping.
+	  Debounce 3.5mm headset insertion by 500ms via delayed work to
+	  suppress false detection and electrical popping. Plug-out is
+	  processed immediately and supersedes any pending insertion work.
 
 config SND_SOC_MT6359_ACCDET
 	tristate "MediaTek MT6359 ACCDET driver"

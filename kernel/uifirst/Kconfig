@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# UIFIRST UX scheduler and lock priority inheritance configuration
+#
+
+config UIFIRST
+	bool "UIFIRST UX task scheduling and lock inheritance"
+	default n
+	help
+	  Prioritize interactive UI, render, SurfaceFlinger, and audio tasks
+	  across CFS runqueues, Binder IPC, futex waitqueues, mutexes, and
+	  read/write semaphores.
+
+config CAMERA_OPT
+	bool "UIFIRST camera provider scheduling optimization"
+	depends on UIFIRST
+	default n
+	help
+	  Reduce runnable latency for camera HAL and provider worker threads.
+
+config MMAP_LOCK_OPT
+	bool "UIFIRST mmap_sem wakeup boost"
+	depends on UIFIRST
+	default n
+	help
+	  Boost wakeup placement for tasks woken on mm->mmap_sem contention.
+
+config UIFIRST_AUDIO_OPT
+	bool "UIFIRST short-running audio task scheduling assist"
+	depends on UIFIRST
+	select SCHEDSTATS
+	default n
+	help
+	  Track runtime and sleep ratios for Android audio priority threads
+	  (urgent audio / audio nice levels or target TGID) and fast-path
+	  short-running audio bursts during wakeup preemption and entity pick.

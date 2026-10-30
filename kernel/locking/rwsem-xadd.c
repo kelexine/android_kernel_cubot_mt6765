@@ -114,6 +114,18 @@ enum rwsem_wake_type {
 	RWSEM_WAKE_READ_OWNED	/* Waker thread holds the read lock */
 };
 
+#ifdef CONFIG_UIFIRST
+/* Writer owner is only tracked when optimistic spinning is configured. */
+static inline struct task_struct *rwsem_ux_owner(struct rw_semaphore *sem)
+{
+#ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+	return READ_ONCE(sem->owner);
+#else
+	return NULL;
+#endif
+}
+#endif /* CONFIG_UIFIRST */
+
 /*
  * handle the lock release when processes blocked on it that can now run
  * - if we come here from up_xxxx(), then:
@@ -287,7 +299,7 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 
 #ifdef CONFIG_UIFIRST
 	if (sysctl_uifirst_enabled) {
-		rwsem_set_inherit_ux(current, waiter.task, READ_ONCE(sem->owner), sem);
+		rwsem_set_inherit_ux(current, rwsem_ux_owner(sem), sem);
 	}
 #endif /* CONFIG_UIFIRST */
 
@@ -325,6 +337,9 @@ out_nolock:
 	list_del(&waiter.list);
 	if (list_empty(&sem->wait_list))
 		atomic_long_add(-RWSEM_WAITING_BIAS, &sem->count);
+#ifdef CONFIG_UIFIRST
+	rwsem_clear_inherit_ux_on_abort(sem);
+#endif /* CONFIG_UIFIRST */
 	raw_spin_unlock_irq(&sem->wait_lock);
 	__set_current_state(TASK_RUNNING);
 	return ERR_PTR(-EINTR);
@@ -611,7 +626,7 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 
 #ifdef CONFIG_UIFIRST
 	if (sysctl_uifirst_enabled) {
-		rwsem_set_inherit_ux(waiter.task, current, READ_ONCE(sem->owner), sem);
+		rwsem_set_inherit_ux(current, rwsem_ux_owner(sem), sem);
 	}
 #endif /* CONFIG_UIFIRST */
 
@@ -656,6 +671,9 @@ out_nolock:
 		atomic_long_add(-RWSEM_WAITING_BIAS, &sem->count);
 	else
 		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
+#ifdef CONFIG_UIFIRST
+	rwsem_clear_inherit_ux_on_abort(sem);
+#endif /* CONFIG_UIFIRST */
 	raw_spin_unlock_irq(&sem->wait_lock);
 	wake_up_q(&wake_q);
 
@@ -739,6 +757,16 @@ struct rw_semaphore *rwsem_wake(struct rw_semaphore *sem)
 		 * state is consulted before reading the wait_lock.
 		 */
 		smp_rmb();
+#ifdef CONFIG_UIFIRST
+		/*
+		 * An inheriting owner must always reach the unset hook below,
+		 * otherwise the inherited UX boost and task ref would leak.
+		 */
+		if (READ_ONCE(sem->ux_dep_task) == current) {
+			raw_spin_lock_irqsave(&sem->wait_lock, flags);
+			goto locked;
+		}
+#endif /* CONFIG_UIFIRST */
 		if (!raw_spin_trylock_irqsave(&sem->wait_lock, flags))
 			return sem;
 		goto locked;

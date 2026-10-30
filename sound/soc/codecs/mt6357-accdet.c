@@ -34,6 +34,8 @@
 /* grobal variable definitions */
 #define REGISTER_VAL(x)	(x - 1)
 #define HAS_CAP(_c, _x)	(((_c) & (_x)) == (_x))
+/* Headset insertion debounce window for CONFIG_MT6357_ACCDET_DEBOUNCE */
+#define ACCDET_PLUG_IN_DEBOUNCE_MS	500U
 #define ACCDET_PMIC_EINT_IRQ		BIT(0)
 #define ACCDET_AP_GPIO_EINT		BIT(1)
 
@@ -1393,8 +1395,19 @@ static int pmic_eint_queue_work(int eintID)
 				}
 			}
 #ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
-			pr_info("%s delayed work 500ms scheduled when plugging in\n", __func__);
-			schedule_delayed_work(&accdet->hp_detect_work, msecs_to_jiffies(500));
+			/*
+			 * Debounce insertion only; plug-out must tear down the
+			 * audio route immediately and supersede pending work.
+			 */
+			if (accdet->cur_eint_state == EINT_PLUG_IN) {
+				pr_info("%s plug-in debounce %ums scheduled\n",
+					__func__, ACCDET_PLUG_IN_DEBOUNCE_MS);
+				mod_delayed_work(system_wq, &accdet->hp_detect_work,
+					msecs_to_jiffies(ACCDET_PLUG_IN_DEBOUNCE_MS));
+			} else {
+				mod_delayed_work(system_wq,
+					&accdet->hp_detect_work, 0);
+			}
 #else
 			ret = queue_work(accdet->eint_workqueue,
 					&accdet->eint_work);
@@ -1440,8 +1453,7 @@ static int pmic_eint_queue_work(int eintID)
 				}
 			}
 #ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
-			cancel_delayed_work_sync(&accdet->hp_detect_work);
-			schedule_delayed_work(&accdet->hp_detect_work, 0);
+			mod_delayed_work(system_wq, &accdet->hp_detect_work, 0);
 #else
 			ret = queue_work(accdet->eint_workqueue,
 					&accdet->eint_work);
@@ -1478,8 +1490,7 @@ static int pmic_eint_queue_work(int eintID)
 				mod_timer(&micbias_timer,
 					jiffies + MICBIAS_DISABLE_TIMER);
 #ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
-				cancel_delayed_work_sync(&accdet->hp_detect_work);
-				schedule_delayed_work(&accdet->hp_detect_work, 0);
+				mod_delayed_work(system_wq, &accdet->hp_detect_work, 0);
 #else
 				ret = queue_work(accdet->eint_workqueue,
 						&accdet->eint_work);
@@ -1494,8 +1505,7 @@ static int pmic_eint_queue_work(int eintID)
 					== EINT_PLUG_OUT) {
 				accdet->cur_eint_state = EINT_PLUG_OUT;
 #ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
-				cancel_delayed_work_sync(&accdet->hp_detect_work);
-				schedule_delayed_work(&accdet->hp_detect_work, 0);
+				mod_delayed_work(system_wq, &accdet->hp_detect_work, 0);
 #else
 				ret = queue_work(accdet->eint_workqueue,
 						&accdet->eint_work);
@@ -1665,8 +1675,8 @@ static irqreturn_t ex_eint_handler(int irq, void *data)
 
 	disable_irq_nosync(accdet->gpioirq);
 #ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
-	cancel_delayed_work_sync(&accdet->hp_detect_work);
-	ret = schedule_delayed_work(&accdet->hp_detect_work, 0);
+	/* hardirq context: mod_delayed_work() never sleeps */
+	ret = mod_delayed_work(system_wq, &accdet->hp_detect_work, 0);
 #else
 	ret = queue_work(accdet->eint_workqueue, &accdet->eint_work);
 #endif
@@ -2332,6 +2342,9 @@ err_chrdevregion:
 
 static int accdet_remove(struct platform_device *pdev)
 {
+#ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
+	cancel_delayed_work_sync(&accdet->hp_detect_work);
+#endif
 	destroy_workqueue(accdet->eint_workqueue);
 	destroy_workqueue(accdet->dis_micbias_workqueue);
 	destroy_workqueue(accdet->accdet_workqueue);

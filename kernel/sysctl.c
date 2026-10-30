@@ -374,6 +374,10 @@ static int max_sched_tunable_scaling = SCHED_TUNABLESCALING_END-1;
 int sysctl_uifirst_enabled = 1;
 int sysctl_launcher_boost_enabled = 0;
 
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
+extern int sysctl_sched_impt_tgid;
+#endif
+
 #ifdef CONFIG_SCHED_WALT
 int sysctl_slide_boost_enabled = 0;
 int sysctl_boost_task_threshold = 51;
@@ -381,10 +385,6 @@ int sysctl_boost_task_threshold = 51;
 int sysctl_camera_opt_enabled = 0;
 #endif
 int sysctl_frame_rate = 60;
-
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
-extern sysctl_sched_impt_tgid;
-#endif
 
 int sched_frame_rate_handler(struct ctl_table *table, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
 {
@@ -1534,7 +1534,7 @@ static struct ctl_table kern_table[] = {
 	},
 #endif
 #endif /* OPLUS_FEATURE_TASK_CPUSTATS */
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
 	{
 		.procname	= "sched_impt_tgid",
 		.data		= &sysctl_sched_impt_tgid,

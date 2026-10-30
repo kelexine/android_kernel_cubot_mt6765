@@ -90,13 +90,15 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
 #endif
 
 #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
-#ifndef CONFIG_UIFIRST
 #define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL
-#else /* CONFIG_UIFIRST */
-#define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL, .ux_dep_task = NULL
-#endif /* CONFIG_UIFIRST */
 #else
 #define __RWSEM_OPT_INIT(lockname)
+#endif
+
+#if defined(CONFIG_UIFIRST) && !defined(CONFIG_RWSEM_GENERIC_SPINLOCK)
+#define __RWSEM_UX_INIT(lockname) , .ux_dep_task = NULL
+#else
+#define __RWSEM_UX_INIT(lockname)
 #endif
 
 #define __RWSEM_INITIALIZER(name)				\
@@ -104,6 +106,7 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
 	  .wait_list = LIST_HEAD_INIT((name).wait_list),	\
 	  .wait_lock = __RAW_SPIN_LOCK_UNLOCKED(name.wait_lock)	\
 	  __RWSEM_OPT_INIT(name)				\
+	  __RWSEM_UX_INIT(name)					\
 	  __RWSEM_DEP_MAP_INIT(name) }
 
 #define DECLARE_RWSEM(name) \
