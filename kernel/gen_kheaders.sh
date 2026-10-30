@@ -8,7 +8,15 @@ sfile="$(readlink -f "$0")"
 outdir="$(pwd)"
 tarfile=$1
 cpio_dir=$outdir/$tarfile.tmp
-cpio=$KBUILD_SRC/tools/build/cpio
+if [ -n "$KBUILD_SRC" ] && [ -x "$KBUILD_SRC/tools/build/cpio" ]; then
+	cpio="$KBUILD_SRC/tools/build/cpio"
+elif [ -n "$srctree" ] && [ -x "$srctree/tools/build/cpio" ]; then
+	cpio="$srctree/tools/build/cpio"
+elif [ -x "tools/build/cpio" ]; then
+	cpio="tools/build/cpio"
+else
+	cpio="cpio"
+fi
 
 dir_list="
 include/

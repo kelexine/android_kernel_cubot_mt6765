@@ -33,7 +33,7 @@
 #include <mt-plat/aee.h>
 #endif
 
-#include <dramc_io.h>
+#include "dramc_io.h"
 #include "mtk_dramc.h"
 #include "dramc.h"
 

@@ -12,6 +12,7 @@
 #
 
 #ion
+ccflags-y += -DMTK_VPU_KERNEL -DCCU_AF_ENABLE
 ccflags-y += -I$(srctree)/drivers/iommu/
 ifeq ($(CONFIG_MTK_ION),y)
     ccflags-y += -I$(srctree)/drivers/staging/android/mtk_ion/
@@ -29,8 +30,10 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/mmp/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat
+ccflags-y += -I$(src)
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/ccu/src/1.2
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/ccu/inc/
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/ccu/src/$(MTK_PLATFORM)
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/ccu/src/$(MTK_PLATFORM)/ccu_ext_interface/
 ccflags-y += -I$(srctree)/drivers/i2c/busses/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/imgsensor/inc

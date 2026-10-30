@@ -12,7 +12,7 @@
 #include <linux/io.h>
 #include <linux/slab.h>
 
-#include <plat_dbg_info.h>
+#include "plat_dbg_info.h"
 
 static void __iomem **plat_dbg_info_base;
 static unsigned int *plat_dbg_info_size;

@@ -26,7 +26,9 @@ endif
 
 obj-y += layering_rule_base.o
 
-ccflags-y += \
+ccflags-y += -I$(src) \
+                                -I$(srctree)/drivers/misc/mediatek/mmp \
+                                -I$(srctree)/drivers/misc/mediatek/include/mt-plat \
                                 -I$(srctree)/drivers/misc/mediatek/video/include     \
                                 -I$(srctree)/drivers/misc/mediatek/video/common/IPv1     \
                                 -I$(srctree)/drivers/misc/mediatek/video/$(MTK_PLATFORM)/dispsys \

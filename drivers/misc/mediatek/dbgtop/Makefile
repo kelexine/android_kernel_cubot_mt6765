@@ -11,4 +11,5 @@
 # GNU General Public License for more details.
 #
 
+ccflags-y += -I$(src)
 obj-y += dbgtop.o

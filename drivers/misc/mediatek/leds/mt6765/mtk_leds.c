@@ -17,7 +17,7 @@
 #include <linux/pm_wakeup.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
-#include <mtk_leds_sw.h>
+#include "mtk_leds_sw.h"
 
 #ifdef CONFIG_MTK_AAL_SUPPORT
 #include <ddp_aal.h>

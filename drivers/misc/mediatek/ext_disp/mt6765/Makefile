@@ -27,7 +27,9 @@ ifeq ($(CONFIG_MTK_DISP_PLATFORM), "mt6779")
 	MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_DISP_PLATFORM))
 endif
 
-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/ \
+ccflags-y += -I$(src) \
+             -I$(srctree)/drivers/misc/mediatek/ext_disp/$(MTK_PLATFORM) \
+             -I$(srctree)/drivers/misc/mediatek/include/ \
              -I$(srctree)/drivers/misc/mediatek/ext_disp/  \
              -I$(srctree)/drivers/misc/mediatek/ext_disp/include/  \
              -I$(srctree)/drivers/misc/mediatek/ext_disp/common/test/ \

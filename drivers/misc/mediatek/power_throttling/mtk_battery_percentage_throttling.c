@@ -9,7 +9,7 @@
 #include <linux/kthread.h>
 #include <linux/device.h>
 #include <linux/power_supply.h>
-#include <mtk_battery_percentage_throttling.h>
+#include "mtk_battery_percentage_throttling.h"
 #include <linux/device.h>
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h>

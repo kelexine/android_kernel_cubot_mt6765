@@ -7,7 +7,7 @@
 #define __ION_DRV_H__
 #include <linux/version.h>
 
-#include <ion.h>
+#include "../ion.h"
 
 #define BACKTRACE_SIZE 10
 

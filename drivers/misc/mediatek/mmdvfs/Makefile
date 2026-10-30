@@ -12,6 +12,8 @@
 #
 
 
+CFLAGS_mmdvfs_pmqos.o := -I$(src)
+ccflags-y += -I$(src)
 ccflags-y += -I$(srctree)/drivers/clk/mediatek
 ccflags-y += -I$(srctree)/drivers/devfreq
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat

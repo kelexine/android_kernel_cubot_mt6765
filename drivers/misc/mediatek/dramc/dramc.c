@@ -21,7 +21,7 @@
 #include <asm/cacheflush.h>
 #include <mt-plat/sync_write.h>
 
-#include <dramc_io.h>
+#include "dramc_io.h"
 #include "mtk_dramc.h"
 
 void __iomem *SLEEP_BASE_ADDR;

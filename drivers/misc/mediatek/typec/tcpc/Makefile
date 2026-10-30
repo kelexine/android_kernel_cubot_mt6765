@@ -1,4 +1,5 @@
 subdir-ccflags-y += -Wall -Wno-unused-but-set-variable -Wno-unused-variable
+subdir-ccflags-y += -I$(src) -I$(src)/inc
 subdir-ccflags-y += -I$(srctree)/drivers/power/supply
 obj-$(CONFIG_TCPC_MT6360)		+= tcpc_mt6360.o
 obj-$(CONFIG_TCPC_MT6370)		+= tcpc_mt6370.o

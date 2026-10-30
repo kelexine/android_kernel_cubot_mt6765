@@ -16,7 +16,7 @@
 #include <mt-plat/sync_write.h>
 #include <mt-plat/mtk_io.h>
 
-#include <dbgtop.h>
+#include "dbgtop.h"
 
 static void __iomem *DBGTOP_BASE;
 static unsigned int LATCH_CTL2_OFFSET;

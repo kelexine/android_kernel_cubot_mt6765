@@ -85,8 +85,10 @@ obj-$(CONFIG_PROBE_EVENTS) += trace_probe.o
 obj-$(CONFIG_UPROBE_EVENTS) += trace_uprobe.o
 
 obj-$(CONFIG_TRACEPOINT_BENCHMARK) += trace_benchmark.o
+CFLAGS_trace_mmstat.o := -I$(src)
 obj-$(CONFIG_MMSTAT_TRACER) += trace_mmstat.o
 
 libftrace-y := ftrace.o
 
+CFLAGS_mtk_trace.o := -I$(src)
 obj-$(CONFIG_TRACING) += mtk_trace.o

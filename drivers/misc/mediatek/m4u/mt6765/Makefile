@@ -11,6 +11,8 @@
 # GNU General Public License for more details.
 #
 
+ccflags-y += -I$(src)
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/m4u/$(subst ",,$(CONFIG_MTK_PLATFORM))/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/gud/$(subst ",,$(CONFIG_MTK_PLATFORM))/gud/MobiCoreKernelApi/public
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/gud/$(subst ",,$(CONFIG_MTK_PLATFORM))/gud/MobiCoreKernelApi/include
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/mach/$(subst ",,$(CONFIG_MTK_PLATFORM))/include/trustzone/m4u

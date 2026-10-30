@@ -11,19 +11,21 @@
 # GNU General Public License for more details.
 #
 
+MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
+
 ccflags-y += \
 	-I$(PPM_ROOT_DIR)/inc \
-	-I$(PPM_ROOT_DIR)/src/mach/$(CONFIG_MTK_PLATFORM) \
-	-I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(CONFIG_MTK_PLATFORM)/include	\
+	-I$(PPM_ROOT_DIR)/src/mach/$(MTK_PLATFORM) \
+	-I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include	\
 	-I$(srctree)/drivers/misc/mediatek/base/power/include	\
-	-I$(srctree)/drivers/misc/mediatek/base/power/$(CONFIG_MTK_PLATFORM)	\
+	-I$(srctree)/drivers/misc/mediatek/base/power/$(MTK_PLATFORM)	\
 	-I$(srctree)/drivers/gpu/mediatek/gpufreq/include	\
 	-I$(srctree)/drivers/misc/mediatek/power_throttling       \
 
 ifeq ($(CONFIG_MTK_TINYSYS_SSPM_SUPPORT), y)
 ccflags-y += \
 	-I$(srctree)/drivers/misc/mediatek/sspm/	\
-	-I$(srctree)/drivers/misc/mediatek/sspm/$(CONFIG_MTK_PLATFORM)
+	-I$(srctree)/drivers/misc/mediatek/sspm/$(MTK_PLATFORM)
 endif
 
 ifneq ($(CONFIG_FPGA_EARLY_PORTING),y)
