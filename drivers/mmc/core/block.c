@@ -46,7 +46,7 @@
 #include <linux/mmc/sd.h>
 
 #ifdef VENDOR_EDIT
-#include <soc/oppo/device_info.h>
+#include <soc/mediatek/device_info.h>
 #endif /* VENDOR_EDIT */
 
 #include <linux/uaccess.h>

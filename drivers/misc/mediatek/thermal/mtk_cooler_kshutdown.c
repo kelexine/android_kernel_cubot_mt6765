@@ -15,7 +15,7 @@
 #include <linux/printk.h>
 #include <linux/types.h>
 #include <linux/kobject.h>
-#include <soc/oplus/system/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 #include "mt-plat/mtk_thermal_monitor.h"
 

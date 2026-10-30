@@ -49,7 +49,7 @@
 #endif
 
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-#include<soc/oppo/oppo_project.h>
+#include<soc/mediatek/mtk_project.h>
 #endif
 
 static DEFINE_MUTEX(gimgsensor_mutex);
@@ -95,7 +95,7 @@ void IMGSENSOR_PROFILE(struct timeval *ptv, char *tag)
 
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
 /* Add by LiuBin for register device info at 20160616 */
-#include <soc/oppo/device_info.h>
+#include <soc/mediatek/device_info.h>
 #define DEVICE_MANUFACUTRE_NA		    "None"
 #define DEVICE_MANUFACUTRE_SUNNY        "Sunny"
 #define DEVICE_MANUFACUTRE_TRULY        "Truly"

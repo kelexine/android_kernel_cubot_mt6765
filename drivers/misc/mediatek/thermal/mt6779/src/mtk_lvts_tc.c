@@ -21,7 +21,7 @@
 #include <linux/slab.h>
 #include "mach/mtk_thermal.h"
 #include <linux/bug.h>
-#include <soc/oplus/system/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 #if defined(CONFIG_MTK_CLKMGR)
 #include <mach/mtk_clkmgr.h>

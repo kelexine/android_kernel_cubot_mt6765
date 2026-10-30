@@ -1,7 +1,7 @@
-#ifndef _OPPO_PROJECT_H_
-#define _OPPO_PROJECT_H_
-#include "oppo_project_data_ocdt.h"
-#include "oppo_project_oldcdt.h"
+#ifndef _MTK_PROJECT_H_
+#define _MTK_PROJECT_H_
+#include "mtk_project_data_ocdt.h"
+#include "mtk_project_oldcdt.h"
 
 #define ALIGN4(s) ((sizeof(s) + 3)&(~0x3))
 

@@ -9,7 +9,7 @@
 #define OPLUS_FEATURE_CAMERA_COMMON
 #endif
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-#include<soc/oppo/oppo_project.h>
+#include<soc/mediatek/mtk_project.h>
 #endif
 static const int regulator_voltage[] = {
 	REGULATOR_VOLTAGE_0,

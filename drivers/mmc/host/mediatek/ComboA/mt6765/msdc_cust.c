@@ -21,7 +21,7 @@
 #include <linux/slab.h>
 #include <linux/regmap.h>
 #include <linux/mfd/syscon.h>
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 #include "mtk_sd.h"
 #include "dbg.h"

@@ -74,7 +74,7 @@
 #include "connsys_debug_utility.h"
 
 //#ifdef OPLUS_BUG_STABILITY
-#include <soc/oplus/system/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 //#endif /* OPLUS_BUG_STABILITY */
 
 #ifdef CONFIG_COMPAT

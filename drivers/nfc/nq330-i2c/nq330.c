@@ -72,8 +72,8 @@
 #include <linux/clk.h>
 #include "nq330.h"
 //#ifdef VENDOR_EDIT
-//#include <soc/oppo/oppo_project.h>
-#include <soc/oppo/oppo_nfc.h>
+//#include <soc/mediatek/mtk_project.h>
+#include <soc/mediatek/mtk_nfc.h>
 //#endif /* VENDOR_EDIT */
 
 #define NEXUS5x    0

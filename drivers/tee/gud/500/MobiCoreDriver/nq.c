@@ -44,7 +44,7 @@
 #include "logging.h"
 #include "nq.h"
 
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 #define NQ_NUM_ELEMS		64
 #define DEFAULT_TIMEOUT_MS	20000	/* We do nothing on timeout anyway */

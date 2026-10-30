@@ -37,7 +37,7 @@
 
 #ifdef ODM_HQ_EDIT
 /*Houbing.Peng@ODM_HQ Cam.Drv 20200915 add for otp*/
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 #endif
 
 #define LOG_TAG "OTP_InSensor"

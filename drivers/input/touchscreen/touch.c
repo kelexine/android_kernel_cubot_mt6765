@@ -17,9 +17,9 @@
 #include <linux/serio.h>
 #include "oppo_touchscreen/tp_devices.h"
 #include "oppo_touchscreen/touchpanel_common.h"
-#include <soc/oppo/oppo_project.h>
-#include <soc/oppo/device_info.h>
-#include <soc/oplus/system/oplus_project.h>
+#include <soc/mediatek/mtk_project.h>
+#include <soc/mediatek/device_info.h>
+#include <soc/mediatek/mtk_project.h>
 #include "touch.h"
 
 #define MAX_LIMIT_DATA_LENGTH         100

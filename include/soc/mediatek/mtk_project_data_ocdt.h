@@ -1,5 +1,5 @@
-#ifndef OPPO_PROJECT_DATA_OCDT_H
-#define OPPO_PROJECT_DATA_OCDT_H
+#ifndef MTK_PROJECT_DATA_OCDT_H
+#define MTK_PROJECT_DATA_OCDT_H
 
 #define MAX_OCP	6
 #define MAX_LEN 8
@@ -93,6 +93,8 @@ enum OPPO_ENG_VERSION {
     ALL_NET_CU_FIELD        = 0x08,
     ALL_NET_CT_TEST         = 0x09,
     ALL_NET_CT_FIELD        = 0x0A,
+    HIGH_TEMP_AGING         = 0x0B,
+    FACTORY                 = 0x0C,
 };
 
 typedef  struct

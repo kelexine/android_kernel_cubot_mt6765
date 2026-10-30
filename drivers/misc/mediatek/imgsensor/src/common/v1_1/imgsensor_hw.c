@@ -13,7 +13,7 @@
 #include "imgsensor_hw.h"
 
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-#include<soc/oppo/oppo_project.h>
+#include<soc/mediatek/mtk_project.h>
 int gpio57usercont = 0;
 #endif
 

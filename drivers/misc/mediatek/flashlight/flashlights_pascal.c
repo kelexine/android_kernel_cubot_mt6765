@@ -36,8 +36,8 @@
 #endif
 
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-#include <soc/oplus/system/oplus_project.h>
-#include <soc/oplus/system/oplus_project_oldcdt.h>
+#include <soc/mediatek/mtk_project.h>
+#include <soc/mediatek/mtk_project_oldcdt.h>
 #endif
 /* define device tree */
 #ifndef PASCAL_DTNAME

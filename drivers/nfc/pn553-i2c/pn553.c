@@ -73,7 +73,7 @@
 #include "pn553.h"
 //#ifdef OPLUS_FEATURE_NFC_CONSOFT
 //Add for : ST NXP chip common software
-#include <soc/oppo/oppo_nfc.h>
+#include <soc/mediatek/mtk_nfc.h>
 //#endif /* OPLUS_FEATURE_NFC_CONSOFT */
 
 #define NEXUS5x    0

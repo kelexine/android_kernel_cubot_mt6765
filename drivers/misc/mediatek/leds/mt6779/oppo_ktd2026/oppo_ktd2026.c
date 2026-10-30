@@ -30,7 +30,7 @@
 #include "oppo_ktd2026.h"
 #include <linux/hrtimer.h>
 #include <linux/delay.h>
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 #define KTD_I2C_NAME "ktd2026"
 

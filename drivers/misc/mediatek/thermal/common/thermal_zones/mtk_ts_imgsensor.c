@@ -24,7 +24,7 @@
 #include "kd_camera_feature.h"
 #include "kd_imgsensor_define.h"
 #include "kd_imgsensor_api.h"
-#include <soc/oplus/system/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 /*=============================================================
  * Weak function

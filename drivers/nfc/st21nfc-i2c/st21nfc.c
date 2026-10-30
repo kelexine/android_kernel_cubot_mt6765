@@ -47,7 +47,7 @@
 #endif
 #include <linux/of_irq.h>
 #include "st21nfc.h"
-#include <soc/oppo/oppo_nfc.h>
+#include <soc/mediatek/mtk_nfc.h>
 
 #define ST21NFCD_MTK
 //#define ST54J_PWRSTATS

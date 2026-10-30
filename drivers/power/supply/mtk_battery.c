@@ -41,8 +41,8 @@ static inline unsigned int is_project(int project) { return 0; }
 /*****************************************************************/
 #ifdef OPLUS_FEATURE_CHG_BASIC
 #include <linux/iio/consumer.h>
-#include <soc/oppo/device_info.h>
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/device_info.h>
+#include <soc/mediatek/mtk_project.h>
 #include <linux/gpio.h>
 #include "../oplus/oplus_gauge.h"
 

@@ -93,7 +93,7 @@
 #endif
 #ifdef OPLUS_BUG_COMPATIBILITY
 //Add for distinguish wifi.cfg at runtime.
-#include <soc/oplus/system/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 #endif /* OPLUS_BUG_COMPATIBILITY */
 /*******************************************************************************
  *                              C O N S T A N T S

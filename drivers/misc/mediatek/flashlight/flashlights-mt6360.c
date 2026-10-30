@@ -24,7 +24,7 @@
 #include "flashlight-core.h"
 #include "flashlight-dt.h"
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-#include<soc/oppo/oppo_project.h>
+#include<soc/mediatek/mtk_project.h>
 #endif
 /* device tree should be defined in flashlight-dt.h */
 #ifndef MT6360_DTNAME

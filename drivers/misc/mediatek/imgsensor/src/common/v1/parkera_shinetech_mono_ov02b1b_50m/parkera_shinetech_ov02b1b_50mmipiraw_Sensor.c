@@ -30,7 +30,7 @@
 //#include <linux/hardware_info.h>
 #undef IMGSENSOR_I2C_1000K
 //#include "imgsensor_i2c.h"
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 
 #define PFX "ov02b1b_50m_camera_sensor"

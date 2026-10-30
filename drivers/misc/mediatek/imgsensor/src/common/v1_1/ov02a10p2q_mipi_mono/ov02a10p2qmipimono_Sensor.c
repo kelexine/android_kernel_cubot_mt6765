@@ -36,7 +36,7 @@
 #endif
 
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 #define DEVICE_VERSION_OV02A10    "ov02a10"
 #define IMGSENSOR_MODULE_ID_SUNNY       0x01
 extern void register_imgsensor_deviceinfo(char *name, char *version, u8 module_id);

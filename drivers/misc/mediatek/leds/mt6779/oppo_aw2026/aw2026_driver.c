@@ -30,7 +30,7 @@
 #include "aw2026_driver.h"
 #include <linux/hrtimer.h>
 #include <linux/delay.h>
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 #define AW_I2C_NAME			"aw2026"
 __attribute__((weak)) void global_i2c_mutex_lock(void)

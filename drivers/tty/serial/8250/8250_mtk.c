@@ -22,7 +22,7 @@
 #include "mt-plat/mtk_printk_ctrl.h"
 #ifdef OPLUS_FEATURE_CHG_BASIC
 #include <linux/pinctrl/consumer.h>
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 #include <mt-plat/mtk_boot.h>
 #endif
 #include "8250.h"

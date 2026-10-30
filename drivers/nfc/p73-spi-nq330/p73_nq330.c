@@ -43,7 +43,7 @@
 #include "p73_nq330.h"
 #include "../nq330-i2c/nq330.h"
 //#ifdef VENDOR_EDIT
-#include <soc/oppo/oppo_nfc.h>
+#include <soc/mediatek/mtk_nfc.h>
 //#endif /* VENDOR_EDIT */
 
 extern long  pn544_dev_ioctl_nq330(struct file *filp, unsigned int cmd,

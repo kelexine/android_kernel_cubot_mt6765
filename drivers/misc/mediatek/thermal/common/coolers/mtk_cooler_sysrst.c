@@ -21,7 +21,7 @@
 #include <linux/slab.h>
 #include <linux/seq_file.h>
 #include <tscpu_settings.h>
-#include <soc/oplus/system/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 /*=============================================================
  *Local variable definition

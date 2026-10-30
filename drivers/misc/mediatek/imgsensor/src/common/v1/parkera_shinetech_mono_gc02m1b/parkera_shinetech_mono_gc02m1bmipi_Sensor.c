@@ -34,7 +34,7 @@
 #include "kd_imgsensor_errcode.h"
 //#include <linux/hardware_info.h>
 #include "parkera_shinetech_mono_gc02m1bmipi_Sensor.h"
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 /************************** Modify Following Strings for Debug **************************/
 #define PFX "parkera_shinetech_mono_gc02m1b_camera_sensor"

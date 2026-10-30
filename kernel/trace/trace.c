@@ -56,7 +56,7 @@
 #endif
 
 /* #ifdef OPLUS_BUG_STABILITY */
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 /* #endif */
 
 /*

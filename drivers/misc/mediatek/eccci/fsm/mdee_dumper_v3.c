@@ -17,7 +17,7 @@
 #include "md_sys1_platform.h"
 #ifdef VENDOR_EDIT
 //Add for monitor modem crash
-#include <soc/oppo/mmkey_log.h>
+#include <soc/mediatek/mmkey_log.h>
 #endif /*VENDOR_EDIT*/
 
 

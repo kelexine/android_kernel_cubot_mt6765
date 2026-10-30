@@ -44,7 +44,7 @@
 #include "../pn553-i2c/pn553.h"
 //#ifdef OPLUS_FEATURE_NFC_CONSOFT
 //Add for : ST NXP chip common software
-#include <soc/oppo/oppo_nfc.h>
+#include <soc/mediatek/mtk_nfc.h>
 //#endif /* OPLUS_FEATURE_NFC_CONSOFT */
 
 extern long  pn544_dev_ioctl(struct file *filp, unsigned int cmd,

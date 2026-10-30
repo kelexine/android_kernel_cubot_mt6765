@@ -73,7 +73,7 @@
 /*
 * add power seq api for ulps
 */
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 #ifdef OPLUS_FEATURE_MM_FEEDBACK
 #include <soc/oplus/system/oplus_mm_kevent_fb.h>
 #endif /* OPLUS_FEATURE_MM_FEEDBACK */

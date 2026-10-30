@@ -25,7 +25,7 @@
 #endif
 
 #include <mt-plat/mtk_boot_common.h>
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 #define FRA (48)
 #define PARA (28)

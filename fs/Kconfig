@@ -14,11 +14,7 @@ config FS_IOMAP
 	bool
 
 source "fs/ext2/Kconfig"
-#ifdef VENDOR_EDIT
-source "fs/oext4/Kconfig"
-#else
-#source "fs/ext4/Kconfig"
-#endif
+source "fs/ext4/Kconfig"
 source "fs/jbd2/Kconfig"
 
 config FS_MBCACHE
@@ -323,8 +319,5 @@ endif # NETWORK_FILESYSTEMS
 source "fs/nls/Kconfig"
 source "fs/dlm/Kconfig"
 source "fs/unicode/Kconfig"
-# Cubot P50 stock config does not enable exFAT, and the OPPO exFAT tree is absent.
-# Keep first-stage P50 bring-up independent from the missing vendor drop.
-# source "fs/exfat/Kconfig"
 
 endmenu

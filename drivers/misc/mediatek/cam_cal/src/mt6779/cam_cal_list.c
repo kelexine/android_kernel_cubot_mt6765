@@ -18,7 +18,7 @@
 #define MAX_EEPROM_SIZE_0 (0x3000)
 #endif
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-#include<soc/oppo/oppo_project.h>
+#include<soc/mediatek/mtk_project.h>
 #endif
 struct stCAM_CAL_LIST_STRUCT g_camCalList[] = {
         #ifdef OPLUS_FEATURE_CAMERA_COMMON

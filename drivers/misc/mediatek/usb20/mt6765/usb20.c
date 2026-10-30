@@ -532,7 +532,7 @@ static bool musb_hal_is_vbus_exist(void)
 }
 #endif
 
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 /* be aware this could not be used in non-sleep context */
 bool usb_cable_connected(struct musb *musb)
 {

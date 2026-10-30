@@ -97,7 +97,7 @@
 #include <mmdvfs_mgr.h>
 #include <mmdvfs_pmqos.h>
 #include <linux/soc/mediatek/mtk-pm-qos.h>
-#include<soc/oppo/oppo_project.h>
+#include<soc/mediatek/mtk_project.h>
 /* Use this qos request to control camera dynamic frequency change */
 struct mtk_pm_qos_request isp_qos;
 struct mtk_pm_qos_request camsys_qos_request[ISP_IRQ_TYPE_INT_CAM_B_ST+1];

@@ -52,7 +52,7 @@
 #endif // ST21NFCD_MTK
 
 #include "../st21nfc-i2c/st21nfc.h"
-#include <soc/oppo/oppo_nfc.h>
+#include <soc/mediatek/mtk_nfc.h>
 
 
 /*

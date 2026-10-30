@@ -65,7 +65,7 @@ static int pt_is_low(int pt_low_vol, int pt_low_bat, int pt_over_cur);
 #endif
 
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-#include<soc/oppo/oppo_project.h>
+#include<soc/mediatek/mtk_project.h>
 extern const struct flashlight_device_id flashlight_id_dual[];
 extern const struct flashlight_device_id flashlight_id_single[];
 extern const struct flashlight_device_id flashlight_id_parkera[];

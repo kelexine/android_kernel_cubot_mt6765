@@ -51,7 +51,7 @@
 #endif
 
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 #endif
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
 static kal_uint8 EepData[CALI_DATA_SLAVE_LENGTH_8ALIGN

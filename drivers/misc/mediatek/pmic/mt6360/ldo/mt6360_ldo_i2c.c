@@ -11,7 +11,7 @@
 #include <linux/of_irq.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 
 #include "../inc/mt6360_ldo.h"
 

@@ -1,5 +1,5 @@
-#ifndef __OPPO_NFC_H__
-#define __OPPO_NFC_H__
+#ifndef __MTK_NFC_H__
+#define __MTK_NFC_H__
 
 #include <stdbool.h>
 

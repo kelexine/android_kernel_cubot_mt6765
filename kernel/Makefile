@@ -54,9 +54,6 @@ obj-y += livepatch/
 obj-y += dma/
 
 
-#ifdef CONFIG_OPLUS_SECURE_GUARD
-obj-$(CONFIG_OPLUS_SECURE_GUARD) += keventupload/
-#endif /* CONFIG_OPLUS_SECURE_GUARD */
 
 
 obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o

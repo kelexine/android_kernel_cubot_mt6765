@@ -20,9 +20,6 @@ else ifeq ($(CONFIG_ION),y)
 else
   $(info ION: ION disable)
 endif
-#ifdef VENDOR_EDIT
-obj-y   += oppo_ion/
-#endif /* VENDOR_EDIT */
 
 #ifdef OPLUS_FEATURE_HANS_FREEZE
 obj-$(CONFIG_OPPO_HANS) += hans.o

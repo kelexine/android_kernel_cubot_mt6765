@@ -15,7 +15,7 @@
 #include <dt-bindings/pinctrl/mt65xx.h>
 #include "pinctrl-paris.h"
 #ifdef OPLUS_FEATURE_TP_BASIC
-#include <soc/oppo/oppo_project.h>
+#include <soc/mediatek/mtk_project.h>
 #endif /*OPLUS_FEATURE_TP_BASIC*/
 
 #define PINCTRL_PINCTRL_DEV	KBUILD_MODNAME
