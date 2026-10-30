@@ -107,9 +107,9 @@
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/task.h>
-#ifdef OPLUS_FEATURE_UIFIRST
+#ifdef CONFIG_UIFIRST
 #include <linux/uifirst/uifirst_sched_fork.h>
-#endif /* OPLUS_FEATURE_UIFIRST */
+#endif /* CONFIG_UIFIRST */
 #ifdef OPLUS_FEATURE_HEALTHINFO
 #ifdef CONFIG_OPPO_JANK_INFO
 #include <linux/oppo_healthinfo/oppo_jank_monitor.h>
@@ -2047,9 +2047,9 @@ static __latent_entropy struct task_struct *copy_process(
 	p->sequential_io_avg	= 0;
 #endif
 
-#ifdef OPLUS_FEATURE_UIFIRST
+#ifdef CONFIG_UIFIRST
 	init_task_ux_info(p);
-#endif /* OPLUS_FEATURE_UIFIRST */
+#endif /* CONFIG_UIFIRST */
 #ifdef OPLUS_FEATURE_HEALTHINFO
 #ifdef CONFIG_OPPO_JANK_INFO
 	p->jank_trace = 0;

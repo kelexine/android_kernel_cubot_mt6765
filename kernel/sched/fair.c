@@ -4374,7 +4374,7 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 		left = curr;
 
 	se = left; /* ideally we run the leftmost entity */
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
 	if (sched_assist_pick_next_task(cfs_rq,se)) {
 			return se;
 	}

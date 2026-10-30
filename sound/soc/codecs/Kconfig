@@ -1311,6 +1311,14 @@ config SND_SOC_MT6357_ACCDET
 	  for ASoC codec soc-jack detection mechanism.
 	  Select N if you don't have jack on board.
 
+config MT6357_ACCDET_DEBOUNCE
+	bool "MT6357 accdet delayed headset debounce"
+	depends on SND_SOC_MT6357_ACCDET
+	default y
+	help
+	  Enable delayed work debounce (500ms) on 3.5mm headset plug insertion
+	  to prevent false detection triggers and electrical popping.
+
 config SND_SOC_MT6359_ACCDET
 	tristate "MediaTek MT6359 ACCDET driver"
 	default m

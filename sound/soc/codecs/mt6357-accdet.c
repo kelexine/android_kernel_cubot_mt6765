@@ -113,7 +113,7 @@ struct mt63xx_accdet_data {
 	/* when eint issued, queue work: eint_work */
 	struct work_struct eint_work;
 	struct workqueue_struct *eint_workqueue;
-#ifdef OPLUS_ARCH_EXTENDS
+#ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
 	struct delayed_work hp_detect_work;
 #endif
 #ifdef CONFIG_HSKEY_BLOCK
@@ -1392,7 +1392,7 @@ static int pmic_eint_queue_work(int eintID)
 					jiffies + MICBIAS_DISABLE_TIMER);
 				}
 			}
-#ifdef OPLUS_ARCH_EXTENDS
+#ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
 			pr_info("%s delayed work 500ms scheduled when plugging in\n", __func__);
 			schedule_delayed_work(&accdet->hp_detect_work, msecs_to_jiffies(500));
 #else
@@ -1439,7 +1439,7 @@ static int pmic_eint_queue_work(int eintID)
 					jiffies + MICBIAS_DISABLE_TIMER);
 				}
 			}
-#ifdef OPLUS_ARCH_EXTENDS
+#ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
 			cancel_delayed_work_sync(&accdet->hp_detect_work);
 			schedule_delayed_work(&accdet->hp_detect_work, 0);
 #else
@@ -1477,7 +1477,7 @@ static int pmic_eint_queue_work(int eintID)
 			if (accdet->cur_eint_state == EINT_PLUG_IN) {
 				mod_timer(&micbias_timer,
 					jiffies + MICBIAS_DISABLE_TIMER);
-#ifdef OPLUS_ARCH_EXTENDS
+#ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
 				cancel_delayed_work_sync(&accdet->hp_detect_work);
 				schedule_delayed_work(&accdet->hp_detect_work, 0);
 #else
@@ -1493,7 +1493,7 @@ static int pmic_eint_queue_work(int eintID)
 			} else if ((accdet->eint0_state & accdet->eint1_state)
 					== EINT_PLUG_OUT) {
 				accdet->cur_eint_state = EINT_PLUG_OUT;
-#ifdef OPLUS_ARCH_EXTENDS
+#ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
 				cancel_delayed_work_sync(&accdet->hp_detect_work);
 				schedule_delayed_work(&accdet->hp_detect_work, 0);
 #else
@@ -1664,7 +1664,7 @@ static irqreturn_t ex_eint_handler(int irq, void *data)
 	}
 
 	disable_irq_nosync(accdet->gpioirq);
-#ifdef OPLUS_ARCH_EXTENDS
+#ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
 	cancel_delayed_work_sync(&accdet->hp_detect_work);
 	ret = schedule_delayed_work(&accdet->hp_detect_work, 0);
 #else
@@ -1946,10 +1946,10 @@ static void accdet_init_once(void)
 	accdet_write(ACCDET_RISE_DELAY_ADDR,
 		  (cust_pwm_deb->fall_delay << 15 | cust_pwm_deb->rise_delay));
 
-#ifdef OPLUS_ARCH_EXTENDS
+#ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
 	reg = accdet_read(RG_EINTCOMPVTH_ADDR);
 	accdet_write(RG_EINTCOMPVTH_ADDR, reg | 0x400);
-#endif /* OPLUS_ARCH_EXTENDS */
+#endif /* CONFIG_MT6357_ACCDET_DEBOUNCE */
 	/* config micbias voltage, micbias1 vref is only controlled by accdet
 	 * if we need 2.8V, config [12:13]
 	 */
@@ -2294,7 +2294,7 @@ static int accdet_probe(struct platform_device *pdev)
 		ret = -1;
 		goto err_create_workqueue;
 	}
-#ifdef OPLUS_ARCH_EXTENDS
+#ifdef CONFIG_MT6357_ACCDET_DEBOUNCE
 	INIT_DELAYED_WORK(&accdet->hp_detect_work, eint_work_callback);
 #endif
 #ifdef CONFIG_HSKEY_BLOCK

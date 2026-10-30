@@ -90,9 +90,9 @@ void __init_rwsem(struct rw_semaphore *sem, const char *name,
 	sem->owner = NULL;
 	osq_lock_init(&sem->osq);
 #endif
-#ifdef OPLUS_FEATURE_UIFIRST
+#ifdef CONFIG_UIFIRST
 	sem->ux_dep_task = NULL;
-#endif /* OPLUS_FEATURE_UIFIRST */
+#endif /* CONFIG_UIFIRST */
 }
 
 EXPORT_SYMBOL(__init_rwsem);
@@ -261,7 +261,7 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 	raw_spin_lock_irq(&sem->wait_lock);
 	if (list_empty(&sem->wait_list))
 		adjustment += RWSEM_WAITING_BIAS;
-#ifdef VENDOR_EDIT
+#ifdef CONFIG_UIFIRST
 	if (sysctl_uifirst_enabled) {
 		rwsem_list_add(waiter.task, &waiter.list, &sem->wait_list);
 	} else {
@@ -285,11 +285,11 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 	     adjustment != -RWSEM_ACTIVE_READ_BIAS))
 		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
 
-#ifdef OPLUS_FEATURE_UIFIRST
+#ifdef CONFIG_UIFIRST
 	if (sysctl_uifirst_enabled) {
 		rwsem_set_inherit_ux(current, waiter.task, READ_ONCE(sem->owner), sem);
 	}
-#endif /* OPLUS_FEATURE_UIFIRST */
+#endif /* CONFIG_UIFIRST */
 
 	raw_spin_unlock_irq(&sem->wait_lock);
 	wake_up_q(&wake_q);
@@ -570,7 +570,7 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 	if (list_empty(&sem->wait_list))
 		waiting = false;
 
-#ifdef VENDOR_EDIT
+#ifdef CONFIG_UIFIRST
 	if (sysctl_uifirst_enabled) {
 		rwsem_list_add(waiter.task, &waiter.list, &sem->wait_list);
 	} else {
@@ -609,11 +609,11 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 	} else
 		count = atomic_long_add_return(RWSEM_WAITING_BIAS, &sem->count);
 
-#ifdef OPLUS_FEATURE_UIFIRST
+#ifdef CONFIG_UIFIRST
 	if (sysctl_uifirst_enabled) {
 		rwsem_set_inherit_ux(waiter.task, current, READ_ONCE(sem->owner), sem);
 	}
-#endif /* OPLUS_FEATURE_UIFIRST */
+#endif /* CONFIG_UIFIRST */
 
 	/* wait until we successfully acquire the lock */
 	set_current_state(state);
@@ -749,11 +749,11 @@ locked:
 	if (!list_empty(&sem->wait_list))
 		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
 
-#ifdef OPLUS_FEATURE_UIFIRST
+#ifdef CONFIG_UIFIRST
 	if (sysctl_uifirst_enabled) {
 		rwsem_unset_inherit_ux(sem, current);
 	}
-#endif /* OPLUS_FEATURE_UIFIRST */
+#endif /* CONFIG_UIFIRST */
 
 	raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
 	wake_up_q(&wake_q);

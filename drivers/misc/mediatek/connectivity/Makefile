@@ -29,6 +29,7 @@ ifneq ($(KERNELRELEASE),)
     ifeq ($(CONFIG_MTK_COMBO), y)
         ccflags-y += -D CFG_CONNADP_BUILD_IN
     endif
+    subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/connectivity/common
 
     # MediaTek In-Tree Connectivity Subsystems
     obj-$(CONFIG_MTK_COMBO) += common/

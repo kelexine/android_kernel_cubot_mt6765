@@ -36,7 +36,7 @@
 #endif /* OPLUS_FEATURE_HEALTHINFO */
 #include <linux/android_kabi.h>
 
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
 #include <linux/uifirst/uifirst_sched_status.h>
 #endif
 
@@ -1341,8 +1341,8 @@ struct task_struct {
 	int				kcov_sequence;
 #endif
 
-#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
-	struct task_info oplus_task_info;
+#ifdef CONFIG_UIFIRST_AUDIO_OPT
+	struct task_info ux_audio_task_info;
 #endif
 
 #ifdef CONFIG_MEMCG

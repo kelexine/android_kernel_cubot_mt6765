@@ -3822,7 +3822,7 @@ static int mt6357_audio_extern_config_get(struct snd_kcontrol *kcontrol,
 
 	for (i = 0; i < AUDIO_EXTERN_CONFIG_MAX_NUM; i++) {
 		ucontrol->value.integer.value[i] = audio_extern[i];
-		pr_info("%s(), OPLUS_AUDIO_EXTERN_CONFIG get value(%d) = %d",
+		pr_info("%s(), AUDIO_EXTERN_CONFIG get value(%d) = %d",
 				__func__, i, audio_extern[i]);
 	}
 
@@ -4628,7 +4628,7 @@ static const struct snd_kcontrol_new mt6357_snd_controls[] = {
 #endif /* CONFIG_SND_SOC_AW87XXX */
 {
 	.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
-	.name = "OPLUS_AUDIO_EXTERN_CONFIG",
+	.name = "AUDIO_EXTERN_CONFIG",
 	.access = SNDRV_CTL_ELEM_ACCESS_READ,
 	.info = mt6357_audio_extern_config_ctl,
 	.get = mt6357_audio_extern_config_get
