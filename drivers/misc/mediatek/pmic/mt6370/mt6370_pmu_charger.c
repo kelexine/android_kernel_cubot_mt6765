@@ -4172,10 +4172,18 @@ static int mt6370_charger_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		if (chg_data->psy_desc.type == POWER_SUPPLY_TYPE_USB)
 			val->intval = 500000;
+		else if (chg_data->psy_desc.type == POWER_SUPPLY_TYPE_USB_CDP)
+			val->intval = 1500000;
+		else if (chg_data->psy_desc.type == POWER_SUPPLY_TYPE_USB_DCP)
+			val->intval = 2000000;
+		else
+			val->intval = 0;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-		if (chg_data->psy_desc.type == POWER_SUPPLY_TYPE_USB)
+		if (chg_data->psy_desc.type != POWER_SUPPLY_TYPE_UNKNOWN)
 			val->intval = 5000000;
+		else
+			val->intval = 0;
 		break;
 	default:
 		ret = -ENODATA;

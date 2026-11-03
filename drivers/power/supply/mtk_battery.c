@@ -1072,6 +1072,22 @@ static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 };
 
+#define MARLON_BATTERY_DESIGN_CAPACITY_MAH 4200
+#define MARLON_BATTERY_DESIGN_CAPACITY_UAH (MARLON_BATTERY_DESIGN_CAPACITY_MAH * 1000)
+
+static int mtk_battery_get_full_charge_uah(struct mtk_battery *gm)
+{
+	int full_uah = MARLON_BATTERY_DESIGN_CAPACITY_UAH;
+
+	if (gm->aging_factor > 0 && gm->aging_factor <= 10000)
+		full_uah = (int)((s64)full_uah * gm->aging_factor / 10000);
+
+	if (full_uah <= 100000)
+		full_uah = MARLON_BATTERY_DESIGN_CAPACITY_UAH;
+
+	return full_uah;
+}
+
 static int battery_psy_get_property(struct power_supply *psy,
 	enum power_supply_property psp,
 	union power_supply_propval *val)
@@ -1088,7 +1104,12 @@ static int battery_psy_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		val->intval = bs_data->bat_status;
+		if (bs_data->bat_status == POWER_SUPPLY_STATUS_CHARGING &&
+			bs_data->bat_capacity >= 100 &&
+			gauge_get_int_property(GAUGE_PROP_BATTERY_CURRENT) <= 0)
+			val->intval = POWER_SUPPLY_STATUS_FULL;
+		else
+			val->intval = bs_data->bat_status;
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
 		val->intval = bs_data->bat_health;
@@ -1102,7 +1123,7 @@ static int battery_psy_get_property(struct power_supply *psy,
 		val->intval = bs_data->bat_technology;
 		break;
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
-		val->intval = 1;
+		val->intval = (gm->bat_cycle > 0) ? gm->bat_cycle : 1;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		/* 1 = META_BOOT, 4 = FACTORY_BOOT 5=ADVMETA_BOOT */
@@ -1129,14 +1150,11 @@ static int battery_psy_get_property(struct power_supply *psy,
 			* 100;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
-		val->intval =
-			gm->fg_table_cust_data.fg_profile[
-				gm->battery_id].q_max * 1000;
+		val->intval = mtk_battery_get_full_charge_uah(gm);
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
-		val->intval = gm->ui_soc *
-			gm->fg_table_cust_data.fg_profile[
-				gm->battery_id].q_max * 1000 / 100;
+		val->intval = max(1, gm->ui_soc) *
+			(mtk_battery_get_full_charge_uah(gm) / 100);
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		gauge_get_property(GAUGE_PROP_BATTERY_VOLTAGE,
@@ -1157,22 +1175,22 @@ static int battery_psy_get_property(struct power_supply *psy,
 			(ret == POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN))
 			val->intval = 0;
 		else {
-			int q_max_now = gm->fg_table_cust_data.fg_profile[
-						gm->battery_id].q_max;
+			int q_max_now = mtk_battery_get_full_charge_uah(gm) / 1000;
 			int remain_ui = 100 - bs_data->bat_capacity;
+			/* remain_mah and current_now are both in 0.1mA(h) units */
 			int remain_mah = remain_ui * q_max_now / 10;
 			int current_now =
-			gauge_get_int_property(GAUGE_PROP_BATTERY_CURRENT);
+				gauge_get_int_property(GAUGE_PROP_BATTERY_CURRENT);
+			int time_to_full = -1;
 
-			int time_to_full = 0;
-
-			if (current_now != 0)
+			if (bs_data->bat_status == POWER_SUPPLY_STATUS_CHARGING &&
+				current_now > 0)
 				time_to_full = remain_mah * 3600 / current_now;
 
-				bm_debug("time_to_full:%d, remain:ui:%d mah:%d, current_now:%d, qmax:%d\n",
-					time_to_full, remain_ui, remain_mah,
-					current_now, q_max_now);
-			val->intval = abs(time_to_full);
+			bm_debug("time_to_full:%d, remain:ui:%d mah:%d, current_now:%d, qmax:%d\n",
+				time_to_full, remain_ui, remain_mah,
+				current_now, q_max_now);
+			val->intval = time_to_full;
 		}
 		ret = 0;
 		break;
@@ -1180,22 +1198,8 @@ static int battery_psy_get_property(struct power_supply *psy,
 		if (check_cap_level(bs_data->bat_capacity) ==
 			POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN)
 			val->intval = 0;
-		else {
-			int q_max_mah = 0;
-			int q_max_uah = 0;
-
-			q_max_mah =
-				gm->fg_table_cust_data.fg_profile[
-				gm->battery_id].q_max / 10;
-
-			q_max_uah = q_max_mah * 1000;
-			if (q_max_uah <= 100000) {
-				bm_debug("%s q_max_mah:%d q_max_uah:%d\n",
-					__func__, q_max_mah, q_max_uah);
-				q_max_uah = 100001;
-			}
-			val->intval = q_max_uah;
-		}
+		else
+			val->intval = MARLON_BATTERY_DESIGN_CAPACITY_UAH;
 		break;
 
 	default:
@@ -1245,6 +1249,9 @@ static void mtk_battery_external_power_changed(struct power_supply *psy)
 			if (status.intval == POWER_SUPPLY_STATUS_NOT_CHARGING)
 				bs_data->bat_status =
 					POWER_SUPPLY_STATUS_NOT_CHARGING;
+			else if (status.intval == POWER_SUPPLY_STATUS_FULL)
+				bs_data->bat_status =
+					POWER_SUPPLY_STATUS_FULL;
 			else
 				bs_data->bat_status =
 					POWER_SUPPLY_STATUS_CHARGING;
