@@ -94,6 +94,7 @@ extern int rcu_scheduler_active __read_mostly;
 void rcu_end_inkernel_boot(void);
 bool rcu_is_watching(void);
 void rcu_all_qs(void);
+void rcu_softirq_qs(void);
 
 /* RCUtree hotplug events */
 int rcutree_prepare_cpu(unsigned int cpu);

@@ -125,6 +125,7 @@ static inline bool rcu_is_watching(void) { return true; }
 
 /* Avoid RCU read-side critical sections leaking across. */
 static inline void rcu_all_qs(void) { barrier(); }
+static inline void rcu_softirq_qs(void) { }
 
 /* RCUtree hotplug events */
 #define rcutree_prepare_cpu      NULL

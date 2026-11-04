@@ -2691,3 +2691,15 @@ static void rcu_dynticks_task_exit(void)
 	WRITE_ONCE(current->rcu_tasks_idle_cpu, -1);
 #endif /* #if defined(CONFIG_TASKS_RCU) && defined(CONFIG_NO_HZ_FULL) */
 }
+
+/*
+ * Report quiescent state from softirq / ksoftirqd / long-running softirq loops.
+ */
+void rcu_softirq_qs(void)
+{
+	rcu_bh_qs();
+	rcu_sched_qs();
+	rcu_preempt_qs();
+	rcu_tasks_qs(current);
+}
+EXPORT_SYMBOL_GPL(rcu_softirq_qs);
