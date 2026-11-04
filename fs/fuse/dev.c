@@ -7,9 +7,6 @@
 */
 
 #include "fuse_i.h"
-#ifdef VENDOR_EDIT
-#include "fuse_shortcircuit.h"
-#endif /* VENDOR_EDIT */
 
 #include <linux/init.h>
 #include <linux/module.h>
@@ -590,12 +587,6 @@ ssize_t fuse_simple_request(struct fuse_conn *fc, struct fuse_args *args)
 	req->out.canonical_path = args->out.canonical_path;
 	fuse_request_send(fc, req);
 	ret = req->out.h.error;
-#ifdef VENDOR_EDIT
-	if (!ret) {
-		if (req->private_lower_rw_file != NULL)
-			args->private_lower_rw_file = req->private_lower_rw_file;
-	}
-#endif /* VENDOR_EDIT */
 	if (!ret && args->out.argvar) {
 		BUG_ON(args->out.numargs != 1);
 		ret = req->out.args[0].size;
@@ -1979,10 +1970,6 @@ static ssize_t fuse_dev_do_write(struct fuse_dev *fud,
 	err = copy_out_args(cs, &req->out, nbytes);
 	fuse_copy_finish(cs);
 
-#ifdef VENDOR_EDIT
-	fuse_setup_shortcircuit(fc, req);
-#endif /* VENDOR_EDIT */
-
         if (!err && req->in.h.opcode == FUSE_CANONICAL_PATH) {
                 char *path = (char *)req->out.args[0].value;
 
@@ -2314,7 +2301,11 @@ static long fuse_dev_ioctl(struct file *file, unsigned int cmd,
 {
 	int err = -ENOTTY;
 
-	if (cmd == FUSE_DEV_IOC_CLONE) {
+	if (_IOC_TYPE(cmd) != FUSE_DEV_IOC_MAGIC)
+		return -EINVAL;
+
+	switch (_IOC_NR(cmd)) {
+	case _IOC_NR(FUSE_DEV_IOC_CLONE): {
 		int oldfd;
 
 		err = -EFAULT;
@@ -2341,6 +2332,24 @@ static long fuse_dev_ioctl(struct file *file, unsigned int cmd,
 				fput(old);
 			}
 		}
+		break;
+	}
+	case _IOC_NR(FUSE_DEV_IOC_PASSTHROUGH_OPEN): {
+		int oldfd;
+		struct fuse_dev *fud = NULL;
+
+		err = -EFAULT;
+		if (!get_user(oldfd, (__u32 __user *) arg)) {
+			err = -EINVAL;
+			fud = fuse_get_dev(file);
+			if (fud)
+				err = fuse_passthrough_open(fud, oldfd);
+		}
+		break;
+	}
+	default:
+		err = -ENOTTY;
+		break;
 	}
 	return err;
 }

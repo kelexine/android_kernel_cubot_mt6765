@@ -49,12 +49,6 @@ MODULE_PARM_DESC(max_user_congthresh,
  "Global limit for the maximum congestion threshold an "
  "unprivileged user can set");
 
-#ifdef VENDOR_EDIT
-static bool shortcircuit = true;
-module_param(shortcircuit, bool, 0644);
-MODULE_PARM_DESC(shortcircuit, "Enable or disable fuse shortcircuit. Default: y/Y/1");
-#endif /* VENDOR_EDIT */
-
 #define FUSE_SUPER_MAGIC 0x65735546
 
 #define FUSE_DEFAULT_BLKSIZE 512
@@ -621,6 +615,7 @@ void fuse_conn_init(struct fuse_conn *fc, struct user_namespace *user_ns)
 {
 	memset(fc, 0, sizeof(*fc));
 	spin_lock_init(&fc->lock);
+	spin_lock_init(&fc->passthrough_req_lock);
 	init_rwsem(&fc->killsb);
 	refcount_set(&fc->count, 1);
 	atomic_set(&fc->dev_count, 1);
@@ -630,6 +625,7 @@ void fuse_conn_init(struct fuse_conn *fc, struct user_namespace *user_ns)
 	INIT_LIST_HEAD(&fc->bg_queue);
 	INIT_LIST_HEAD(&fc->entry);
 	INIT_LIST_HEAD(&fc->devices);
+	idr_init(&fc->passthrough_req);
 	atomic_set(&fc->num_waiting, 0);
 	fc->max_background = FUSE_DEFAULT_MAX_BACKGROUND;
 	fc->congestion_threshold = FUSE_DEFAULT_CONGESTION_THRESHOLD;
@@ -929,15 +925,12 @@ static void process_init_reply(struct fuse_conn *fc, struct fuse_req *req)
 				fc->async_dio = 1;
 			if (arg->flags & FUSE_WRITEBACK_CACHE)
 				fc->writeback_cache = 1;
-#ifdef VENDOR_EDIT
-			if (arg->flags & FUSE_SHORTCIRCUIT || fc->writeback_cache) {
-				/** an ugly way to determine FuseDaemon by writeback_cache
-				 *  since currently only FuseDaemon enable WBC
-				 */
-				fc->shortcircuit_io = shortcircuit ? 1 : 0;
-				pr_info("fuse sct flag: %d\n", shortcircuit);
+			if (arg->flags & FUSE_PASSTHROUGH) {
+				fc->passthrough = 1;
+				/* Prevent further stacking */
+				fc->sb->s_stack_depth =
+					FILESYSTEM_MAX_STACK_DEPTH;
 			}
-#endif /* VENDOR_EDIT */
 			if (arg->flags & FUSE_PARALLEL_DIROPS)
 				fc->parallel_dirops = 1;
 			if (arg->flags & FUSE_HANDLE_KILLPRIV)
@@ -982,11 +975,7 @@ static void fuse_send_init(struct fuse_conn *fc, struct fuse_req *req)
 		FUSE_DO_READDIRPLUS | FUSE_READDIRPLUS_AUTO | FUSE_ASYNC_DIO |
 		FUSE_WRITEBACK_CACHE | FUSE_NO_OPEN_SUPPORT |
 		FUSE_PARALLEL_DIROPS | FUSE_HANDLE_KILLPRIV | FUSE_POSIX_ACL |
-#ifdef VENDOR_EDIT
-		FUSE_ABORT_ERROR | FUSE_SHORTCIRCUIT;
-#else
-		FUSE_ABORT_ERROR;
-#endif /* VENDOR_EDIT */
+		FUSE_ABORT_ERROR | FUSE_PASSTHROUGH;
 
 	req->in.h.opcode = FUSE_INIT;
 	req->in.numargs = 1;
@@ -1003,9 +992,20 @@ static void fuse_send_init(struct fuse_conn *fc, struct fuse_req *req)
 	fuse_request_send_background(fc, req);
 }
 
+static int free_fuse_passthrough(int id, void *p, void *data)
+{
+	struct fuse_passthrough *passthrough = (struct fuse_passthrough *)p;
+
+	fuse_passthrough_release(passthrough);
+	kfree(passthrough);
+	return 0;
+}
+
 static void fuse_free_conn(struct fuse_conn *fc)
 {
 	WARN_ON(!list_empty(&fc->devices));
+	idr_for_each(&fc->passthrough_req, free_fuse_passthrough, NULL);
+	idr_destroy(&fc->passthrough_req);
 	kfree_rcu(fc, rcu);
 }
 
@@ -1376,6 +1376,30 @@ static void fuse_fs_cleanup(void)
 
 static struct kobject *fuse_kobj;
 
+static ssize_t fuse_passthrough_show(struct kobject *kobj,
+				     struct kobj_attribute *attr, char *buff)
+{
+	return sprintf(buff, "supported\n");
+}
+
+static struct kobj_attribute fuse_passthrough_attr =
+		__ATTR_RO(fuse_passthrough);
+
+static struct attribute *fuse_features[] = {
+	&fuse_passthrough_attr.attr,
+	NULL,
+};
+
+static const struct attribute_group fuse_features_group = {
+	.name = "features",
+	.attrs = fuse_features,
+};
+
+static const struct attribute_group *fuse_attribute_groups[] = {
+	&fuse_features_group,
+	NULL
+};
+
 static int fuse_sysfs_init(void)
 {
 	int err;
@@ -1390,8 +1414,14 @@ static int fuse_sysfs_init(void)
 	if (err)
 		goto out_fuse_unregister;
 
+	err = sysfs_create_groups(fuse_kobj, fuse_attribute_groups);
+	if (err)
+		goto out_fuse_remove_mount_point;
+
 	return 0;
 
+ out_fuse_remove_mount_point:
+	sysfs_remove_mount_point(fuse_kobj, "connections");
  out_fuse_unregister:
 	kobject_put(fuse_kobj);
  out_err:
@@ -1400,6 +1430,7 @@ static int fuse_sysfs_init(void)
 
 static void fuse_sysfs_cleanup(void)
 {
+	sysfs_remove_groups(fuse_kobj, fuse_attribute_groups);
 	sysfs_remove_mount_point(fuse_kobj, "connections");
 	kobject_put(fuse_kobj);
 }
