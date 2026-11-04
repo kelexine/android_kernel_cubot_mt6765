@@ -194,23 +194,31 @@ enum lockdown_reason {
 	LOCKDOWN_IOPORT,
 	LOCKDOWN_MSR,
 	LOCKDOWN_ACPI_TABLES,
-	LOCKDOWN_DEVICE_TREE,
 	LOCKDOWN_PCMCIA_CIS,
 	LOCKDOWN_TIOCSSERIAL,
-	LOCKDOWN_MODULE_UNLOAD,
+	LOCKDOWN_MODULE_PARAMETERS,
+	LOCKDOWN_MMIOTRACE,
+	LOCKDOWN_DEBUGFS,
+	LOCKDOWN_XMON_WR,
+	LOCKDOWN_BPF_WRITE_USER,
+	LOCKDOWN_DBG_WRITE_KERNEL,
 	LOCKDOWN_INTEGRITY_MAX,
 	LOCKDOWN_KCORE,
 	LOCKDOWN_KPROBES,
-	LOCKDOWN_BPF_WRITE_USER,
+	LOCKDOWN_BPF_READ_KERNEL,
+	LOCKDOWN_PERF,
+	LOCKDOWN_TRACEFS,
+	LOCKDOWN_XMON_RD,
+	LOCKDOWN_XEN_PRIVCMD,
 	LOCKDOWN_CONFIDENTIALITY_MAX,
 };
 
-static inline int security_locked_down(enum lockdown_reason what)
-{
-	return 0;
-}
+extern const char *const lockdown_reasons[LOCKDOWN_CONFIDENTIALITY_MAX + 1];
 
 #ifdef CONFIG_SECURITY
+
+int security_locked_down(enum lockdown_reason what);
+void lockdown_add_hooks(void);
 
 struct security_mnt_opts {
 	char **mnt_opts;
@@ -1230,6 +1238,11 @@ static inline int security_inode_getsecctx(struct inode *inode, void **ctx, u32 
 {
 	return -EOPNOTSUPP;
 }
+static inline int security_locked_down(enum lockdown_reason what)
+{
+	return 0;
+}
+static inline void lockdown_add_hooks(void) { }
 #endif	/* CONFIG_SECURITY */
 
 #ifdef CONFIG_SECURITY_NETWORK

@@ -1793,8 +1793,8 @@ union security_list_options {
 	void (*perf_event_free)(struct perf_event *event);
 	int (*perf_event_read)(struct perf_event *event);
 	int (*perf_event_write)(struct perf_event *event);
-
 #endif
+	int (*locked_down)(enum lockdown_reason what);
 };
 
 struct security_hook_heads {
@@ -2037,6 +2037,7 @@ struct security_hook_heads {
 	struct hlist_head perf_event_read;
 	struct hlist_head perf_event_write;
 #endif
+	struct hlist_head locked_down;
 } __randomize_layout;
 
 /*
