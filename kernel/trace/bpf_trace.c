@@ -1108,7 +1108,8 @@ static int bpf_send_signal_common(u32 sig, enum pid_type type)
 		 * to the irq_work. The current task may change when queued
 		 * irq works get executed.
 		 */
-		work->task = get_task_struct(current);
+		get_task_struct(current);
+		work->task = current;
 		work->sig = sig;
 		work->type = type;
 		irq_work_queue(&work->irq_work);
