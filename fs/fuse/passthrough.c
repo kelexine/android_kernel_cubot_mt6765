@@ -247,7 +247,7 @@ int fuse_passthrough_open(struct fuse_dev *fud, u32 lower_fd)
 	}
 
 	if (!passthrough_filp->f_op->read_iter ||
-	    !((passthrough_filp->f_path.mnt->mnt_flags | MNT_READONLY) ||
+	    !((passthrough_filp->f_path.mnt->mnt_flags & MNT_READONLY) ||
 	       passthrough_filp->f_op->write_iter)) {
 		pr_err("FUSE: passthrough file misses file operations.\n");
 		res = -EBADF;
@@ -270,6 +270,11 @@ int fuse_passthrough_open(struct fuse_dev *fud, u32 lower_fd)
 
 	passthrough->filp = passthrough_filp;
 	passthrough->cred = prepare_creds();
+	if (!passthrough->cred) {
+		kfree(passthrough);
+		res = -ENOMEM;
+		goto err_free_file;
+	}
 
 	idr_preload(GFP_KERNEL);
 	spin_lock(&fc->passthrough_req_lock);
@@ -282,6 +287,7 @@ int fuse_passthrough_open(struct fuse_dev *fud, u32 lower_fd)
 
 	fuse_passthrough_release(passthrough);
 	kfree(passthrough);
+	return res;
 
 err_free_file:
 	fput(passthrough_filp);
