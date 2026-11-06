@@ -1277,7 +1277,7 @@ static int fuse_fill_super(struct super_block *sb, void *data, int silent)
 
 #ifdef CONFIG_FUSE_BPF
 	if (d.root_bpf_present) {
-		root_bpf = fuse_get_bpf_prog(d.root_bpf_fd);
+		root_bpf = fuse_get_bpf_prog(fget(d.root_bpf_fd));
 		if (IS_ERR(root_bpf)) {
 			err = PTR_ERR(root_bpf);
 			goto err;
