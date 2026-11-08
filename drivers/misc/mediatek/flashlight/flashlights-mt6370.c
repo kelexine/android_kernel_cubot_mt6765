@@ -718,6 +718,63 @@ static struct flashlight_operations mt6370_ops = {
 	mt6370_set_driver
 };
 
+/* Torch brightness sysfs control */
+static int mt6370_torch_brightness;
+
+static ssize_t torch_brightness_show(struct device *dev,
+				    struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", mt6370_torch_brightness);
+}
+
+static ssize_t torch_brightness_store(struct device *dev,
+				     struct device_attribute *attr,
+				     const char *buf, size_t count)
+{
+	int val;
+	int hw_level;
+
+	if (kstrtoint(buf, 10, &val) < 0)
+		return -EINVAL;
+
+	if (val < 0)
+		val = 0;
+	if (val > 15)
+		val = 15;
+
+	pr_info("torch_brightness: val=%d, prev=%d\n", val, mt6370_torch_brightness);
+
+	if (val == 0) {
+		if (mt6370_torch_brightness > 0) {
+			mt6370_operate(MT6370_CHANNEL_CH1, MT6370_DISABLE);
+			mt6370_set_driver(0);
+		}
+		mt6370_torch_brightness = 0;
+	} else {
+		if (mt6370_torch_brightness == 0) {
+			mt6370_set_driver(1);
+		}
+
+		/* Map 1..7 (Android standard slider steps) to hardware levels 1..15 */
+		if (val >= 1 && val <= 7) {
+			static const int slider_to_hw[8] = { 0, 1, 3, 5, 7, 9, 12, 15 };
+			hw_level = slider_to_hw[val];
+		} else {
+			hw_level = min(val, 15);
+		}
+
+		mt6370_set_scenario(FLASHLIGHT_SCENARIO_FLASHLIGHT |
+				    FLASHLIGHT_SCENARIO_DECOUPLE);
+		mt6370_set_level(MT6370_CHANNEL_CH1, hw_level);
+		mt6370_timeout_ms[MT6370_CHANNEL_CH1] = 0;
+		mt6370_operate(MT6370_CHANNEL_CH1, MT6370_ENABLE);
+		mt6370_torch_brightness = val;
+	}
+
+	return count;
+}
+static DEVICE_ATTR(torch_brightness, 0664, torch_brightness_show, torch_brightness_store);
+
 
 /******************************************************************************
  * Platform device and driver
@@ -843,6 +900,10 @@ static int mt6370_probe(struct platform_device *pdev)
 			return -EFAULT;
 	}
 
+	ret = device_create_file(&pdev->dev, &dev_attr_torch_brightness);
+	if (ret)
+		pr_info("Failed to create torch_brightness sysfs: %d\n", ret);
+
 	pr_debug("Probe done.\n");
 
 	return 0;
@@ -854,6 +915,8 @@ static int mt6370_remove(struct platform_device *pdev)
 	int i;
 
 	pr_debug("Remove start.\n");
+
+	device_remove_file(&pdev->dev, &dev_attr_torch_brightness);
 
 	pdev->dev.platform_data = NULL;
 
