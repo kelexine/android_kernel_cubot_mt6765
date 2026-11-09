@@ -128,6 +128,8 @@ static int mt6370_en_ch1;
 static int mt6370_en_ch2;
 static int mt6370_level_ch1;
 static int mt6370_level_ch2;
+static int mt6370_torch_brightness;
+static int mt6370_torch_hw_level = 5;
 
 static int mt6370_is_charger_ready(void)
 {
@@ -220,6 +222,7 @@ static int mt6370_disable_ch1(void)
 	}
 
 	ret |= flashlight_set_mode(flashlight_dev_ch1, FLASHLIGHT_MODE_OFF);
+	mt6370_torch_brightness = 0;
 
 	if (ret < 0)
 		pr_info("Failed to disable.\n");
@@ -259,6 +262,7 @@ static int mt6370_disable_all(void)
 
 	ret |= flashlight_set_mode(flashlight_dev_ch1,
 				   FLASHLIGHT_MODE_DUAL_OFF);
+	mt6370_torch_brightness = 0;
 
 	if (ret < 0)
 		pr_info("Failed to disable.\n");
@@ -299,9 +303,12 @@ static int mt6370_set_level_ch1(int level)
 		return -1;
 
 	/* set brightness level */
-	if (!mt6370_is_torch(level))
+	if (!mt6370_is_torch(level)) {
+		int torch_idx = (mt6370_torch_hw_level > 0) ?
+				mt6370_torch_hw_level : level;
 		flashlight_set_torch_brightness(
-				flashlight_dev_ch1, mt6370_torch_level[level]);
+				flashlight_dev_ch1, mt6370_torch_level[torch_idx]);
+	}
 	flashlight_set_strobe_brightness(
 			flashlight_dev_ch1, mt6370_strobe_level[level]);
 
@@ -719,8 +726,6 @@ static struct flashlight_operations mt6370_ops = {
 };
 
 /* Torch brightness sysfs control */
-static int mt6370_torch_brightness;
-
 static ssize_t torch_brightness_show(struct device *dev,
 				    struct device_attribute *attr, char *buf)
 {
@@ -731,6 +736,7 @@ static ssize_t torch_brightness_store(struct device *dev,
 				     struct device_attribute *attr,
 				     const char *buf, size_t count)
 {
+	static const int slider_to_hw[8] = { 0, 1, 3, 5, 7, 9, 12, 15 };
 	int val;
 	int hw_level;
 
@@ -744,32 +750,29 @@ static ssize_t torch_brightness_store(struct device *dev,
 
 	pr_info("torch_brightness: val=%d, prev=%d\n", val, mt6370_torch_brightness);
 
+	mutex_lock(&mt6370_mutex);
 	if (val == 0) {
-		if (mt6370_torch_brightness > 0) {
-			mt6370_operate(MT6370_CHANNEL_CH1, MT6370_DISABLE);
-			mt6370_set_driver(0);
-		}
+		mt6370_timer_cancel(MT6370_CHANNEL_CH1);
+		mt6370_timeout_ms[MT6370_CHANNEL_CH1] = 0;
+		mt6370_disable_ch1();
 		mt6370_torch_brightness = 0;
 	} else {
-		if (mt6370_torch_brightness == 0) {
-			mt6370_set_driver(1);
-		}
-
 		/* Map 1..7 (Android standard slider steps) to hardware levels 1..15 */
-		if (val >= 1 && val <= 7) {
-			static const int slider_to_hw[8] = { 0, 1, 3, 5, 7, 9, 12, 15 };
+		if (val >= 1 && val <= 7)
 			hw_level = slider_to_hw[val];
-		} else {
+		else
 			hw_level = min(val, 15);
-		}
 
-		mt6370_set_scenario(FLASHLIGHT_SCENARIO_FLASHLIGHT |
-				    FLASHLIGHT_SCENARIO_DECOUPLE);
-		mt6370_set_level(MT6370_CHANNEL_CH1, hw_level);
+		mt6370_torch_hw_level = hw_level;
+		mt6370_timer_cancel(MT6370_CHANNEL_CH1);
 		mt6370_timeout_ms[MT6370_CHANNEL_CH1] = 0;
-		mt6370_operate(MT6370_CHANNEL_CH1, MT6370_ENABLE);
+		mt6370_set_level_ch1(hw_level);
+		if (flashlight_dev_ch1)
+			flashlight_set_mode(flashlight_dev_ch1,
+					    FLASHLIGHT_MODE_TORCH);
 		mt6370_torch_brightness = val;
 	}
+	mutex_unlock(&mt6370_mutex);
 
 	return count;
 }
