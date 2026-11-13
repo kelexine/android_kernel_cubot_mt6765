@@ -377,7 +377,8 @@ void bssDetermineApBssInfoPhyTypeSet(IN struct ADAPTER *prAdapter,
 		prBssInfo->ucPhyTypeSet &= ~PHY_TYPE_BIT_HT;
 	else if (IS_FEATURE_FORCE_ENABLED(ucHtOption))
 		prBssInfo->ucPhyTypeSet |= PHY_TYPE_BIT_HT;
-	else if (!fgIsPureAp && IS_FEATURE_ENABLED(ucHtOption))
+	else if ((!fgIsPureAp || prBssInfo->eBand == BAND_5G) &&
+			IS_FEATURE_ENABLED(ucHtOption))
 		prBssInfo->ucPhyTypeSet |= PHY_TYPE_BIT_HT;
 
 	if (IS_FEATURE_DISABLED(ucVhtOption)) {
@@ -389,8 +390,7 @@ void bssDetermineApBssInfoPhyTypeSet(IN struct ADAPTER *prAdapter,
 			prWifiVar->ucVhtIeIn2g &&
 			(prBssInfo->ucPhyTypeSet & PHY_TYPE_SET_802_11N)) {
 		prBssInfo->ucPhyTypeSet |= PHY_TYPE_BIT_VHT;
-	} else if (!fgIsPureAp &&
-			IS_FEATURE_ENABLED(ucVhtOption) &&
+	} else if (IS_FEATURE_ENABLED(ucVhtOption) &&
 			(prBssInfo->eBand == BAND_5G)) {
 		prBssInfo->ucPhyTypeSet |= PHY_TYPE_BIT_VHT;
 	}

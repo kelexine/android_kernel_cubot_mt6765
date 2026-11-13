@@ -6413,14 +6413,42 @@ exit:
 	/* return; */
 }
 
+/**
+ * p2pAppendPreferredFreqList - Append domain/ACS channels as MHz frequencies.
+ * @freq_list: Destination frequency array (capacity MAX_CHN_NUM).
+ * @num_freq_list: In/out count of valid entries in @freq_list.
+ * @aucChannelList: Source RF channel info entries.
+ * @ucNumOfChannel: Number of valid entries in @aucChannelList.
+ * @u4SkipFreq: Frequency (MHz) to skip deduplicating against, or 0 for none.
+ */
+static void
+p2pAppendPreferredFreqList(OUT uint32_t *freq_list,
+		IN OUT uint32_t *num_freq_list,
+		IN const struct RF_CHANNEL_INFO *aucChannelList,
+		IN uint8_t ucNumOfChannel,
+		IN uint32_t u4SkipFreq)
+{
+	uint32_t i;
+
+	for (i = 0; i < ucNumOfChannel && *num_freq_list < MAX_CHN_NUM; i++) {
+		uint32_t u4Freq = nicChannelNum2Freq(
+			aucChannelList[i].ucChannelNum) / 1000;
+
+		if (u4SkipFreq && u4Freq == u4SkipFreq)
+			continue;
+
+		freq_list[*num_freq_list] = u4Freq;
+		(*num_freq_list)++;
+	}
+}
+
 uint32_t
 p2pFunGetPreferredFreqList(IN struct ADAPTER *prAdapter,
 		IN enum ENUM_IFTYPE eIftype, OUT uint32_t *freq_list,
 		OUT uint32_t *num_freq_list)
 {
 	struct BSS_INFO *prAisBssInfo;
-	uint8_t ucNumOfChannel;
-	uint32_t i;
+	uint8_t ucNumOfChannel = 0;
 	struct RF_CHANNEL_INFO *aucChannelList;
 #if (CFG_SUPPORT_P2PGO_ACS == 1)
 	struct WIFI_VAR *prWifiVar = &prAdapter->rWifiVar;
@@ -6460,11 +6488,8 @@ p2pFunGetPreferredFreqList(IN struct ADAPTER *prAdapter,
 		DBGLOG(P2P, INFO,
 			"ucNumOfChannel: %d\n",
 			ucNumOfChannel);
-		for (i = 0; i < ucNumOfChannel; i++) {
-			freq_list[i] = nicChannelNum2Freq(
-				aucChannelList[i].ucChannelNum) / 1000;
-			(*num_freq_list)++;
-		}
+		p2pAppendPreferredFreqList(freq_list, num_freq_list,
+			aucChannelList, ucNumOfChannel, 0);
 	} else if (prAdapter->rWifiVar.eDbdcMode ==
 		ENUM_DBDC_MODE_DISABLED) {
 		/* DBDC disabled */
@@ -6488,70 +6513,62 @@ p2pFunGetPreferredFreqList(IN struct ADAPTER *prAdapter,
 					MAX_CHN_NUM,
 					&ucNumOfChannel,
 					aucChannelList);
-			for (i = 0; i < ucNumOfChannel; i++) {
-				freq_list[i] = nicChannelNum2Freq(
-					aucChannelList[i].ucChannelNum) / 1000;
-				(*num_freq_list)++;
-			}
+			p2pAppendPreferredFreqList(freq_list, num_freq_list,
+					aucChannelList, ucNumOfChannel, 0);
 
 			/* Add SCC channel */
-			freq_list[i] = nicChannelNum2Freq(
-				prAisBssInfo->ucPrimaryChannel) / 1000;
+			if (*num_freq_list < MAX_CHN_NUM) {
+				freq_list[*num_freq_list] = nicChannelNum2Freq(
+					prAisBssInfo->ucPrimaryChannel) / 1000;
 				(*num_freq_list)++;
+			}
 		} else {
 			/* Prefer SCC if STA is connected at 5G band */
-			freq_list[0] = nicChannelNum2Freq(
+			uint32_t u4StaFreq = nicChannelNum2Freq(
 				prAisBssInfo->ucPrimaryChannel) / 1000;
+
+			freq_list[0] = u4StaFreq;
 			(*num_freq_list)++;
 #if (CFG_SUPPORT_P2PGO_ACS == 1)
 			if (prWifiVar->ucP2pGoACS == TRUE) {
+				uint8_t ucBandMask = BIT(BAND_5G);
+
+				if (prAdapter->rWifiVar.eDbdcMode !=
+						ENUM_DBDC_MODE_DISABLED)
+					ucBandMask |= BIT(BAND_2G4);
+
 				p2pFunGetAcsBestChList(prAdapter,
-					BAND_2G4, MAX_BW_20MHZ,
+					ucBandMask, MAX_BW_20MHZ,
 					BITS(0, 14), BITS(0, 14),
 					BITS(0, 14),
 					&ucNumOfChannel, aucChannelList);
+				p2pAppendPreferredFreqList(freq_list,
+					num_freq_list, aucChannelList,
+					ucNumOfChannel, u4StaFreq);
 			} else
 #endif
-			/* Add 2G channels */
-            //#ifndef VENDOR_EDIT
-            //Remove for: optimization p2p transmission rate
-            /*
-			rlmDomainGetChnlList(prAdapter, BAND_2G4, TRUE,
+			{
+				/* Add 5G channels (MCC) then 2G fallback */
+				rlmDomainGetChnlList(prAdapter, BAND_5G, TRUE,
 					MAX_CHN_NUM,
 					&ucNumOfChannel,
 					aucChannelList);
-			for (i = 0; i < ucNumOfChannel; i++) {
-				freq_list[i + 1] = nicChannelNum2Freq(
-					aucChannelList[i].ucChannelNum) / 1000;
-				(*num_freq_list)++;
+				p2pAppendPreferredFreqList(freq_list,
+					num_freq_list, aucChannelList,
+					ucNumOfChannel, u4StaFreq);
+
+				if (prAdapter->rWifiVar.eDbdcMode !=
+						ENUM_DBDC_MODE_DISABLED) {
+					rlmDomainGetChnlList(prAdapter,
+						BAND_2G4, TRUE,
+						MAX_CHN_NUM,
+						&ucNumOfChannel,
+						aucChannelList);
+					p2pAppendPreferredFreqList(freq_list,
+						num_freq_list, aucChannelList,
+						ucNumOfChannel, u4StaFreq);
+				}
 			}
-            */
-            //#else /* VENDOR_EDIT */
-            //Add 5G channel, MCC may achieve higher throughput than DBDC
-            rlmDomainGetChnlList(prAdapter, BAND_5G, TRUE,
-                    MAX_CHN_NUM,
-                    &ucNumOfChannel,
-                    aucChannelList);
-            for (i = 0; i < ucNumOfChannel; i++) {
-                uint32_t freq = nicChannelNum2Freq(aucChannelList[i].ucChannelNum) / 1000;
-                if( freq_list[0] != freq ) {
-                    freq_list[(*num_freq_list)] = freq;
-                    (*num_freq_list)++;
-                }
-            }
-            //Add 2G channels if DBDC enabled
-            if ( prAdapter->rWifiVar.eDbdcMode != ENUM_DBDC_MODE_DISABLED ) {
-                rlmDomainGetChnlList(prAdapter, BAND_2G4, TRUE,
-                        MAX_CHN_NUM,
-                        &ucNumOfChannel,
-                        aucChannelList);
-                for (i = 0; i < ucNumOfChannel; i++) {
-                    freq_list[(*num_freq_list)] = nicChannelNum2Freq(
-                        aucChannelList[i].ucChannelNum) / 1000;
-                    (*num_freq_list)++;
-                }
-            }
-            //#endif /* VENDOR_EDIT */
 		}
 	}
 
@@ -6889,7 +6906,7 @@ void p2pFunProcessAcsReport(IN struct ADAPTER *prAdapter,
 			[ENUM_SAFE_CH_MASK_BAND_5G_1];
 
 		prAcsReqInfo->u4LteSafeChnMask_5G_1 &= u4LteSafeChnMask_5G_1;
-		prAcsReqInfo->u4LteSafeChnMask_5G_1 &= u4LteSafeChnMask_5G_2;
+		prAcsReqInfo->u4LteSafeChnMask_5G_2 &= u4LteSafeChnMask_5G_2;
 	}
 
 	prAcsReqInfo->ucPrimaryCh = p2pFunGetAcsBestCh(prAdapter,
